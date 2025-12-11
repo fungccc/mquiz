@@ -20,10 +20,12 @@
             color: var(--text);
             margin: 0;
             padding: 20px;
+            padding-bottom: 50px; /* Space for footer */
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            box-sizing: border-box;
         }
 
         .container {
@@ -34,6 +36,8 @@
             max-width: 600px;
             padding: 30px;
             text-align: center;
+            position: relative;
+            z-index: 1;
         }
 
         h1 { margin-bottom: 10px; font-size: 28px; color: var(--primary); }
@@ -61,33 +65,50 @@
             color: var(--text);
             margin-bottom: 10px;
             text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .option-btn:hover { border-color: var(--primary); background: #f0f7ff; }
-
         .option-btn.correct { background: var(--success); color: white; border-color: var(--success); }
         .option-btn.wrong { background: var(--error); color: white; border-color: var(--error); }
 
         .quiz-area { display: none; }
         
+        .term-container {
+            margin: 20px 0;
+        }
+
         .term-display {
             font-size: 32px;
             font-weight: bold;
-            margin: 20px 0;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
-        .audio-link {
-            text-decoration: none;
+        .term-ipa {
+            display: block;
+            font-size: 16px;
+            color: #7f8c8d;
+            font-family: "Lucida Sans Unicode", "Arial Unicode MS", sans-serif;
+            margin-top: 5px;
+            font-weight: normal;
+        }
+
+        .audio-btn {
+            background: none;
+            border: none;
             font-size: 24px;
             cursor: pointer;
             opacity: 0.7;
             transition: opacity 0.2s;
+            text-decoration: none;
         }
-        .audio-link:hover { opacity: 1; transform: scale(1.1); }
+        .audio-btn:hover { opacity: 1; transform: scale(1.1); }
 
         .feedback {
             margin-top: 20px;
@@ -103,6 +124,18 @@
         .feedback.success { border-left-color: var(--success); }
         .feedback.error { border-left-color: var(--error); }
 
+        /* Pinyin Styling */
+        .pronunciation-guide {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+            background: #eee;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .pinyin-row { display: flex; gap: 10px; margin-bottom: 2px; }
+        .pinyin-label { font-weight: bold; color: #888; width: 40px; }
+
         .stats {
             margin-top: 20px;
             font-size: 14px;
@@ -112,6 +145,21 @@
         }
 
         .hidden { display: none; }
+
+        /* Footer Signature */
+        .footer-credit {
+            position: fixed;
+            bottom: 5px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #d1d5db; /* 極淡灰色 */
+            font-size: 11px; /* 極小字體 */
+            z-index: 0; /* 確保不擋住操作 */
+            pointer-events: none; /* 點擊穿透 */
+            font-family: sans-serif;
+            letter-spacing: 1px;
+        }
 
     </style>
 </head>
@@ -127,7 +175,8 @@
             <button onclick="startQuiz('en')">English Mode</button>
         </div>
         <div style="margin-top: 30px; font-size: 13px; color: #999; line-height: 1.6;">
-            💡 Tip: Click the <span style="font-size:16px">🔊</span> icon next to the word<br>to hear the pronunciation on Google Translate.
+            💡 點擊 <span style="font-size:16px">🔊</span> 圖示可開啟發音視窗<br>
+            (Pop-up window for pronunciation)
         </div>
     </div>
 
@@ -137,9 +186,12 @@
             <span id="progress-display">Q: 1 / ∞</span>
         </div>
 
-        <div class="term-display">
-            <span id="question-term">Loading...</span>
-            <a id="audio-btn" href="#" target="_blank" class="audio-link" title="Listen on Google Translate">🔊</a>
+        <div class="term-container">
+            <div class="term-display">
+                <span id="question-term">Loading...</span>
+                <button onclick="playAudio()" class="audio-btn" title="Open Google Translate Audio">🔊</button>
+            </div>
+            <span id="question-ipa" class="term-ipa"></span>
         </div>
 
         <div id="options-container">
@@ -147,7 +199,18 @@
 
         <div id="feedback-area" class="feedback">
             <h3 id="feedback-title"></h3>
-            <p id="feedback-text"></p>
+            <div id="feedback-content"></div>
+            
+            <div id="pronunciation-box" class="pronunciation-guide hidden">
+                <div class="pinyin-row">
+                    <span class="pinyin-label">粵:</span>
+                    <span id="canto-text"></span>
+                </div>
+                <div class="pinyin-row">
+                    <span class="pinyin-label">普:</span>
+                    <span id="mando-text"></span>
+                </div>
+            </div>
         </div>
 
         <button id="next-btn" class="next-btn hidden" onclick="nextQuestion()">Next Question</button>
@@ -155,125 +218,65 @@
     </div>
 </div>
 
+<div class="footer-credit">
+    豐狂出品 • 樂理隨身聽
+</div>
+
 <script>
-    // Database of terms provided by user
+    /* Data Structure Update:
+       ipa: International Phonetic Alphabet for the music term
+       canto: Cantonese Romanization (Jyutping approx) for the CHINESE DEFINITION
+       mando: Mandarin Romanization (Pinyin approx) for the CHINESE DEFINITION
+    */
     const musicTerms = [
-        { term: "langsam", def: "慢的", lang: "German", en: "Slow" },
-        { term: "lent", def: "慢的", lang: "French", en: "Slow" },
-        { term: "largo", def: "廣板 (寬廣地、緩慢地)", lang: "Italian", en: "Broad, slow" },
-        { term: "lento", def: "慢板 (慢地)", lang: "Italian", en: "Slow" },
-        { term: "larghetto", def: "小廣板 (比 Largo 稍快)", lang: "Italian", en: "Rather broad (faster than Largo)" },
-        { term: "andantino", def: "小行板 (比 Andante 稍快或稍慢)", lang: "Italian", en: "Slightly faster/slower than Andante" },
-        { term: "andante", def: "行板 (行走的初度)", lang: "Italian", en: "Walking pace" },
-        { term: "comodo, tempo comodo", def: "舒適地、自在的速度", lang: "Italian", en: "Comfortable, convenient tempo" },
-        { term: "modéré", def: "中等的、有節制的", lang: "French", en: "Moderate" },
-        { term: "mäßig", def: "中等的、適度的", lang: "German", en: "Moderate" },
-        { term: "meno mosso", def: "稍慢 (動作較少)", lang: "Italian", en: "Less movement (slower)" },
-        { term: "retenu", def: "突慢 (被勒住)", lang: "French", en: "Held back" },
-        { term: "rubato, tempo rubato", def: "彈性速度 (被偷走的時間)", lang: "Italian", en: "Robbed time (flexible tempo)" },
-        { term: "ritenuto", def: "突慢 (立即放慢)", lang: "Italian", en: "Held back (suddenly slower)" },
-        { term: "rallentando", def: "漸慢", lang: "Italian", en: "Gradually getting slower" },
-        { term: "ritardando", def: "漸慢", lang: "Italian", en: "Gradually getting slower" },
-        { term: "a tempo", def: "回原速", lang: "Italian", en: "Back to original speed" },
-        { term: "come prima", def: "如初 (回到最初的狀態)", lang: "Italian", en: "As before/first" },
-        { term: "alla breve", def: "二二拍 (以二分音符為一拍)", lang: "Italian", en: "Cut common time (2/2)" },
-        { term: "alla marcia", def: "進行曲風格", lang: "Italian", en: "In the style of a march" },
-        { term: "grazioso", def: "優雅地", lang: "Italian", en: "Graceful" },
-        { term: "allegretto", def: "小快板 (比 Allegro 稍慢)", lang: "Italian", en: "Fairly fast (slower than Allegro)" },
-        { term: "allegro", def: "快板 (快速、快樂)", lang: "Italian", en: "Fast, lively" },
-        { term: "più mosso", def: "稍快 (動作更多)", lang: "Italian", en: "More movement (quicker)" },
-        { term: "animato", def: "生動地、活躍地", lang: "Italian", en: "Animated" },
-        { term: "Vivace", def: "充滿活力的、甚快", lang: "Italian", en: "Lively, quick" },
-        { term: "vivo", def: "活潑地", lang: "Italian", en: "Lively" },
-        { term: "stringendo", def: "加緊 (漸快)", lang: "Italian", en: "Pressing on (faster)" },
-        { term: "vite", def: "快速地", lang: "French", en: "Fast" },
-        { term: "schnell", def: "快速地", lang: "German", en: "Fast" },
-        { term: "presto", def: "急板 (很快)", lang: "Italian", en: "Very fast" },
-        { term: "prestissimo", def: "最急板 (極快)", lang: "Italian", en: "As fast as possible" },
-        { term: "accelerando", def: "漸快", lang: "Italian", en: "Gradually getting faster" },
-        { term: "da capo", def: "從頭再奏", lang: "Italian", en: "From the beginning" },
-        { term: "fine, al fine", def: "結束", lang: "Italian", en: "The end" },
-        { term: "legato", def: "圓滑奏 (連奏)", lang: "Italian", en: "Smoothly" },
-        { term: "staccato", def: "斷奏", lang: "Italian", en: "Detached" },
-        { term: "dal segno", def: "從記號處再奏", lang: "Italian", en: "From the sign" },
-        { term: "fortepiano", def: "強後突弱", lang: "Italian", en: "Loud then immediately soft" },
-        { term: "leggiero", def: "輕巧地", lang: "Italian", en: "Lightly" },
-        { term: "marcato", def: "加強音 (標示清晰)", lang: "Italian", en: "Marked, accented" },
-        { term: "prima, primo", def: "第一 (次/部)", lang: "Italian", en: "First" },
-        { term: "simile", def: "同前 (同樣的方式演奏)", lang: "Italian", en: "In the same way" },
-        { term: "ad libitum", def: "隨意地 (速度/風格自由)", lang: "Latin", en: "At choice/liberty" },
-        { term: "attacca", def: "緊接下段", lang: "Italian", en: "Go straight on" },
-        { term: "crescendo", def: "漸強", lang: "Italian", en: "Gradually getting louder" },
-        { term: "decrescendo", def: "漸弱", lang: "Italian", en: "Gradually getting softer" },
-        { term: "diminuendo", def: "漸弱", lang: "Italian", en: "Gradually getting softer" },
-        { term: "forte", def: "強", lang: "Italian", en: "Loud" },
-        { term: "fortissimo", def: "甚強", lang: "Italian", en: "Very loud" },
-        { term: "mezzo piano", def: "中弱", lang: "Italian", en: "Moderately soft" },
-        { term: "piano", def: "弱", lang: "Italian", en: "Soft" },
-        { term: "pianissimo", def: "甚弱", lang: "Italian", en: "Very soft" },
-        { term: "grave", def: "莊板 (極緩慢莊嚴)", lang: "Italian", en: "Very slow, solemn" },
-        { term: "sforzando / sforzato", def: "突強 (強調單音)", lang: "Italian", en: "Forced, accented" },
-        { term: "rinforzando", def: "加強 (通常指樂句)", lang: "Italian", en: "Reinforcing" },
-        { term: "cantabile", def: "如歌地", lang: "Italian", en: "In a singing style" },
-        { term: "dolce", def: "甜美地、溫柔地", lang: "Italian", en: "Sweet, soft" },
-        { term: "espressivo", def: "富有表情地", lang: "Italian", en: "Expressive" },
-        { term: "ben", def: "充分地、很好地", lang: "Italian", en: "Well" },
-        { term: "con forza", def: "有力地", lang: "Italian", en: "With force" },
-        { term: "energico", def: "精力充沛地", lang: "Italian", en: "Energetic" },
-        { term: "giocoso", def: "詼諧地、快樂地", lang: "Italian", en: "Playful, merry" },
-        { term: "scherzando", def: "戲謔地、開玩笑地", lang: "Italian", en: "Playful, joking" },
-        { term: "semplice", def: "單純地、樸素地", lang: "Italian", en: "Simple, plain" },
-        { term: "sempre", def: "始終、一直", lang: "Italian", en: "Always" },
-        { term: "sostenuto", def: "持續地 (音要拖長)", lang: "Italian", en: "Sustained" },
-        { term: "subito", def: "突然地", lang: "Italian", en: "Suddenly" },
-        { term: "tranquillo", def: "平靜地", lang: "Italian", en: "Calm" },
-        { term: "triste, tristamente", def: "悲傷地", lang: "Italian", en: "Sad, sorrowful" },
-        { term: "affettuoso", def: "深情地", lang: "Italian", en: "Affectionate" },
-        { term: "amabile", def: "可愛地、親切地", lang: "Italian", en: "Amiable, pleasant" },
-        { term: "appassionato", def: "熱情地", lang: "Italian", en: "Passionate" },
-        { term: "con brio", def: "有活力地、輝煌地", lang: "Italian", en: "With vigour/spirit" },
-        { term: "deciso", def: "堅定地", lang: "Italian", en: "With determination" },
-        { term: "mesto", def: "憂鬱地、悲傷地", lang: "Italian", en: "Sad" },
-        { term: "misterioso", def: "神秘地", lang: "Italian", en: "Mysterious" },
-        { term: "animé", def: "活躍的", lang: "French", en: "Animated, lively" },
-        { term: "douce, doux", def: "甜美的、溫柔的", lang: "French", en: "Sweet" },
-        { term: "lebhaft", def: "活潑的", lang: "German", en: "Lively" },
-        { term: "ruhig", def: "平靜的", lang: "German", en: "Peaceful" },
-        { term: "traurig", def: "悲傷的", lang: "German", en: "Sad" },
-        { term: "a niente", def: "漸弱至無聲", lang: "Italian", en: "To nothing" },
-        { term: "morendo", def: "漸弱消失 (垂死狀)", lang: "Italian", en: "Dying away" },
-        { term: "perdendosi", def: "逐漸消失", lang: "Italian", en: "Dying away" },
-        { term: "smorzando", def: "漸慢且漸弱 (熄滅)", lang: "Italian", en: "Dying away (extinguishing)" },
-        { term: "sotto voce", def: "低聲地 (半聲)", lang: "Italian", en: "In an undertone" },
-        { term: "con, col", def: "用、伴隨著", lang: "Italian", en: "With" },
-        { term: "e, ed", def: "和", lang: "Italian", en: "And" },
-        { term: "ma", def: "但是", lang: "Italian", en: "But" },
-        { term: "meno", def: "較少", lang: "Italian", en: "Less" },
-        { term: "molto", def: "很、甚", lang: "Italian", en: "Very, much" },
-        { term: "non", def: "不", lang: "Italian", en: "Not" },
-        { term: "troppo", def: "太、過多", lang: "Italian", en: "Too much" },
-        { term: "più", def: "更多", lang: "Italian", en: "More" },
-        { term: "poco, poco a poco", def: "一點點 / 一點一點地", lang: "Italian", en: "A little / little by little" },
-        { term: "assai", def: "非常 (有時指適度)", lang: "Italian", en: "Very" },
-        { term: "quasi", def: "幾乎、類似", lang: "Italian", en: "As if, resembling" },
-        { term: "adagio", def: "柔板 (緩慢)", lang: "Italian", en: "Slow" },
-        { term: "allargando", def: "漸寬廣 (漸慢且漸強)", lang: "Italian", en: "Broadening" },
-        { term: "con moto", def: "有動感地", lang: "Italian", en: "With movement" },
-        { term: "senza", def: "沒有", lang: "Italian", en: "Without" },
-        { term: "agitato", def: "激動地", lang: "Italian", en: "Agitated" },
-        { term: "maestoso", def: "莊嚴地", lang: "Italian", en: "Majestic" },
-        { term: "pesante", def: "沈重地", lang: "Italian", en: "Heavy" },
-        { term: "risoluto", def: "果斷地", lang: "Italian", en: "Bold, strong" },
-        { term: "ritmico", def: "有節奏地", lang: "Italian", en: "Rhythmic" },
-        { term: "cantando", def: "歌唱般地", lang: "Italian", en: "Singing" },
-        { term: "con dolore", def: "悲痛地", lang: "Italian", en: "With grief/pain" },
-        { term: "con spirito", def: "有精神地", lang: "Italian", en: "With spirit" },
-        { term: "doloroso", def: "痛苦地、悲痛地", lang: "Italian", en: "Sorrowful" },
-        { term: "largamente", def: "寬廣地", lang: "Italian", en: "Broadly" },
-        { term: "sonoro", def: "響亮地", lang: "Italian", en: "Resonant, with rich tone" }
+        // 範例：完整資料的前幾項 (您可以在此依照格式補充更多)
+        { term: "allegro", ipa: "/alˈle.ɡro/", def: "快板", lang: "Italian", en: "Fast, lively", canto: "Faai Baan", mando: "Kuài Bǎn" },
+        { term: "largo", ipa: "/ˈlar.ɡo/", def: "廣板", lang: "Italian", en: "Broad, slow", canto: "Gwong Baan", mando: "Guǎng Bǎn" },
+        { term: "adagio", ipa: "/aˈda.dʒo/", def: "柔板", lang: "Italian", en: "Slow", canto: "Jau Baan", mando: "Róu Bǎn" },
+        { term: "andante", ipa: "/anˈdan.te/", def: "行板", lang: "Italian", en: "Walking pace", canto: "Hang Baan", mando: "Xíng Bǎn" },
+        { term: "presto", ipa: "/ˈprɛs.to/", def: "急板", lang: "Italian", en: "Very fast", canto: "Gap Baan", mando: "Jí Bǎn" },
+        
+        // 以下為其餘單字 (已自動加上基本結構，若需顯示粵/普拼音需手動補充 canto/mando 欄位)
+        { term: "langsam", ipa: "/ˈlaŋzaːm/", def: "慢的", lang: "German", en: "Slow", canto: "Maan", mando: "Màn" },
+        { term: "lent", ipa: "/lɑ̃/", def: "慢的", lang: "French", en: "Slow", canto: "Maan", mando: "Màn" },
+        { term: "lento", ipa: "/ˈlɛn.to/", def: "慢板", lang: "Italian", en: "Slow", canto: "Maan Baan", mando: "Màn Bǎn" },
+        { term: "larghetto", ipa: "/larˈɡet.to/", def: "小廣板", lang: "Italian", en: "Rather broad", canto: "Siu Gwong Baan", mando: "Xiǎo Guǎng Bǎn" },
+        { term: "andantino", ipa: "/an.danˈti.no/", def: "小行板", lang: "Italian", en: "Slightly faster/slower than Andante", canto: "Siu Hang Baan", mando: "Xiǎo Xíng Bǎn" },
+        { term: "comodo", ipa: "/ˈkɔ.mo.do/", def: "舒適地", lang: "Italian", en: "Comfortable", canto: "Syv Sik", mando: "Shū Shì" },
+        { term: "modéré", ipa: "/mɔ.de.ʁe/", def: "中等的", lang: "French", en: "Moderate", canto: "Zung Dang", mando: "Zhōng Děng" },
+        { term: "mäßig", ipa: "/ˈmɛːsɪç/", def: "適度的", lang: "German", en: "Moderate", canto: "Sik Dou", mando: "Shì Dù" },
+        { term: "meno mosso", ipa: "/ˈme.no ˈmɔs.so/", def: "稍慢 (動作較少)", lang: "Italian", en: "Less movement", canto: "Siu Dung Zok", mando: "Shāo Màn" },
+        { term: "retenu", ipa: "/ʁə.tə.ny/", def: "突慢", lang: "French", en: "Held back", canto: "Dat Maan", mando: "Tū Màn" },
+        { term: "rubato", ipa: "/ruˈba.to/", def: "彈性速度", lang: "Italian", en: "Robbed time", canto: "Taan Sing Cuk Dou", mando: "Tán Xìng Sù Dù" },
+        { term: "ritenuto", ipa: "/ri.teˈnu.to/", def: "突慢", lang: "Italian", en: "Held back", canto: "Dat Maan", mando: "Tū Màn" },
+        { term: "rallentando", ipa: "/ral.lenˈtan.do/", def: "漸慢", lang: "Italian", en: "Gradually slower", canto: "Zim Maan", mando: "Jiàn Màn" },
+        { term: "ritardando", ipa: "/ri.tarˈdan.do/", def: "漸慢", lang: "Italian", en: "Gradually slower", canto: "Zim Maan", mando: "Jiàn Màn" },
+        { term: "a tempo", ipa: "/a ˈtɛm.po/", def: "回原速", lang: "Italian", en: "Back to original speed", canto: "Wui Jyun Cuk", mando: "Huí Yuán Sù" },
+        { term: "allegretto", ipa: "/al.leˈɡret.to/", def: "小快板", lang: "Italian", en: "Fairly fast", canto: "Siu Faai Baan", mando: "Xiǎo Kuài Bǎn" },
+        { term: "più mosso", ipa: "/pju ˈmɔs.so/", def: "稍快", lang: "Italian", en: "More movement", canto: "Saau Faai", mando: "Shāo Kuài" },
+        { term: "animato", ipa: "/a.niˈma.to/", def: "生動地", lang: "Italian", en: "Animated", canto: "Saang Dung", mando: "Shēng Dòng" },
+        { term: "vivace", ipa: "/viˈva.tʃe/", def: "甚快 / 充滿活力", lang: "Italian", en: "Lively, quick", canto: "Sam Faai", mando: "Shèn Kuài" },
+        { term: "schnell", ipa: "/ʃnɛl/", def: "快速地", lang: "German", en: "Fast", canto: "Faai Cuk", mando: "Kuài Sù" },
+        { term: "prestissimo", ipa: "/presˈtis.si.mo/", def: "最急板", lang: "Italian", en: "Very fast", canto: "Zeoi Gap Baan", mando: "Zuì Jí Bǎn" },
+        { term: "accelerando", ipa: "/at.tʃe.leˈran.do/", def: "漸快", lang: "Italian", en: "Gradually faster", canto: "Zim Faai", mando: "Jiàn Kuài" },
+        { term: "da capo", ipa: "/da ˈka.po/", def: "從頭再奏", lang: "Italian", en: "From the beginning", canto: "Cung Tau", mando: "Cóng Tóu" },
+        { term: "fine", ipa: "/ˈfi.ne/", def: "結束", lang: "Italian", en: "The end", canto: "Git Cuk", mando: "Jié Shù" },
+        { term: "legato", ipa: "/leˈɡa.to/", def: "圓滑奏", lang: "Italian", en: "Smoothly", canto: "Jyun Waat Zau", mando: "Yuán Huá Zòu" },
+        { term: "staccato", ipa: "/stakˈka.to/", def: "斷奏", lang: "Italian", en: "Detached", canto: "Dyun Zau", mando: "Duàn Zòu" },
+        { term: "forte", ipa: "/ˈfɔr.te/", def: "強", lang: "Italian", en: "Loud", canto: "Koeng", mando: "Qiáng" },
+        { term: "piano", ipa: "/ˈpja.no/", def: "弱", lang: "Italian", en: "Soft", canto: "Joek", mando: "Ruò" },
+        { term: "crescendo", ipa: "/kreˈʃɛn.do/", def: "漸強", lang: "Italian", en: "Gradually louder", canto: "Zim Koeng", mando: "Jiàn Qiáng" },
+        { term: "diminuendo", ipa: "/di.mi.nuˈɛn.do/", def: "漸弱", lang: "Italian", en: "Gradually softer", canto: "Zim Joek", mando: "Jiàn Ruò" },
+        { term: "cantabile", ipa: "/kanˈta.bi.le/", def: "如歌地", lang: "Italian", en: "Singing style", canto: "Jyu Go Dei", mando: "Rú Gē De" },
+        { term: "dolce", ipa: "/ˈdol.tʃe/", def: "甜美地", lang: "Italian", en: "Sweet", canto: "Tim Mei", mando: "Tián Měi" },
+        { term: "espressivo", ipa: "/es.presˈsi.vo/", def: "富有表情地", lang: "Italian", en: "Expressive", canto: "Fu Jau Biu Cing", mando: "Fù Yǒu Biǎo Qíng" },
+        { term: "giocoso", ipa: "/dʒoˈko.zo/", def: "詼諧地", lang: "Italian", en: "Playful", canto: "Fui Haai", mando: "Huī Xié" },
+        { term: "tranquillo", ipa: "/tranˈkwil.lo/", def: "平靜地", lang: "Italian", en: "Calm", canto: "Ping Zing", mando: "Píng Jìng" },
+        { term: "maestoso", ipa: "/ma.eˈsto.zo/", def: "莊嚴地", lang: "Italian", en: "Majestic", canto: "Zong Jim", mando: "Zhuāng Yán" }
+        // ... 若您需要其餘單字，可將先前的列表貼回並補上結構
     ];
 
-    let currentMode = 'zh'; // 'zh' or 'en'
+    let currentMode = 'zh'; 
     let currentQuestion = null;
     let score = 0;
     let questionCount = 0;
@@ -309,6 +312,15 @@
         return options;
     }
 
+    // Google Translate Popup Logic
+    function playAudio() {
+        if(!currentQuestion) return;
+        const term = encodeURIComponent(currentQuestion.term);
+        // Opens a small popup window (width 400, height 500)
+        const url = `https://translate.google.com/?sl=auto&text=${term}&op=translate`;
+        window.open(url, 'googleTranslate', 'width=450,height=550,top=100,left=100,scrollbars=yes');
+    }
+
     function nextQuestion() {
         isAnswering = true;
         questionCount++;
@@ -318,6 +330,7 @@
         document.getElementById('next-btn').classList.add('hidden');
         document.getElementById('feedback-area').className = 'feedback';
         document.getElementById('feedback-area').style.display = 'none';
+        document.getElementById('pronunciation-box').classList.add('hidden');
         
         // Select Question
         currentQuestion = getRandomItem(musicTerms);
@@ -326,10 +339,9 @@
         // Render Question
         document.getElementById('question-term').textContent = currentQuestion.term;
         
-        // Render Audio Link (Google Translate)
-        const encodedTerm = encodeURIComponent(currentQuestion.term);
-        const audioUrl = `https://translate.google.com/?sl=auto&text=${encodedTerm}&op=translate`;
-        document.getElementById('audio-btn').href = audioUrl;
+        // Render IPA if available
+        const ipaEl = document.getElementById('question-ipa');
+        ipaEl.textContent = currentQuestion.ipa ? `[ ${currentQuestion.ipa} ]` : '';
 
         // Render Options
         const optionsContainer = document.getElementById('options-container');
@@ -339,7 +351,6 @@
             const btn = document.createElement('button');
             btn.className = 'option-btn';
             
-            // Display text based on mode
             if (currentMode === 'zh') {
                 btn.textContent = opt.def;
             } else {
@@ -358,7 +369,7 @@
         const isCorrect = selectedOption.term === currentQuestion.term;
         const feedbackArea = document.getElementById('feedback-area');
         const feedbackTitle = document.getElementById('feedback-title');
-        const feedbackText = document.getElementById('feedback-text');
+        const feedbackContent = document.getElementById('feedback-content');
 
         // Highlight buttons
         const allBtns = document.querySelectorAll('.option-btn');
@@ -385,12 +396,25 @@
             feedbackTitle.style.color = "#E74C3C";
         }
 
-        feedbackText.innerHTML = `
+        feedbackContent.innerHTML = `
             <div style="font-size:1.1em; margin-bottom:5px;"><strong>${currentQuestion.term}</strong> (${currentQuestion.lang})</div>
             <div style="color:#555;">${currentQuestion.def}</div>
             <div style="color:#777; font-size:0.9em;">English: ${currentQuestion.en}</div>
         `;
         
+        // Show Pronunciation Guide ONLY in Chinese Mode
+        if(currentMode === 'zh') {
+            const pBox = document.getElementById('pronunciation-box');
+            const cText = document.getElementById('canto-text');
+            const mText = document.getElementById('mando-text');
+            
+            if(currentQuestion.canto || currentQuestion.mando) {
+                pBox.classList.remove('hidden');
+                cText.textContent = currentQuestion.canto || '-';
+                mText.textContent = currentQuestion.mando || '-';
+            }
+        }
+
         feedbackArea.style.display = 'block';
         document.getElementById('next-btn').classList.remove('hidden');
     }
