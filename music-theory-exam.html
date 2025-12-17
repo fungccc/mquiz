@@ -1,0 +1,1332 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>樂理試題（Music Theory Exam）</title>
+  <style>
+    :root { --max: 980px; }
+    body { font-family: system-ui, -apple-system, "Noto Sans TC", Arial; margin: 0; background:#f6f7fb; color:#111; }
+    header { background:#111; color:#fff; padding:16px 0; }
+    header .wrap { max-width: var(--max); margin:0 auto; padding:0 16px; display:flex; gap:12px; align-items:center; justify-content:space-between;}
+    main { max-width: var(--max); margin: 16px auto; padding: 0 16px 60px; }
+    .card { background:#fff; border:1px solid #e6e8ef; border-radius:12px; padding:16px; margin:12px 0; box-shadow: 0 1px 0 rgba(0,0,0,.03); }
+    .meta { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .pill { background:#222; color:#fff; border-radius:999px; padding:6px 10px; font-size:12px; }
+    .pill.soft { background:#eef1ff; color:#1a2cff; border:1px solid #d8ddff; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .row > * { flex: 1 1 260px; }
+    label { display:block; margin: 8px 0; cursor:pointer; }
+    .q-title { font-weight:700; margin: 0 0 8px; }
+    .q-sub { margin: 0 0 10px; color:#444; }
+    .opts { margin-top: 8px; }
+    .imgbox img { max-width: 100%; height:auto; border:1px solid #e6e8ef; border-radius:10px; }
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    button { border:0; border-radius:10px; padding:10px 12px; cursor:pointer; font-weight:600; }
+    button.primary { background:#1a2cff; color:#fff; }
+    button.ghost { background:#fff; border:1px solid #d7dbea; }
+    button.danger { background:#b00020; color:#fff; }
+    .small { font-size:12px; color:#666; }
+    .score { font-weight:800; font-size:18px; }
+    .warn { color:#b00020; font-weight:700; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div>
+      <div style="font-weight:800; font-size:16px;">樂理試題（Music Theory Exam）</div>
+      <div class="small" style="color:#cfd3ff;">60題｜2小時（60 questions | 2 hours）</div>
+    </div>
+    <div class="meta">
+      <span class="pill soft">倒數（Timer）：<span id="timer">02:00:00</span></span>
+      <span class="pill">狀態（Status）：<span id="status">未開始</span></span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="grid2">
+      <div>
+        <div class="q-title">考生資料（Candidate Info）</div>
+        <label>姓名（Name）
+          <input id="candidateName" style="width:100%; padding:10px; border-radius:10px; border:1px solid #d7dbea;" placeholder="例如：Phoebe" />
+        </label>
+        <label>班別/編號（Class/No.）
+          <input id="candidateId" style="width:100%; padding:10px; border-radius:10px; border:1px solid #d7dbea;" placeholder="例如：4A-12" />
+        </label>
+        <div class="small">提示：按「開始（Start）」後會啟動倒數。（Timer starts after Start）</div>
+      </div>
+      <div>
+        <div class="q-title">操作（Controls）</div>
+        <div class="toolbar">
+          <button class="primary" id="btnStart">開始（Start）</button>
+          <button class="ghost" id="btnSubmit">交卷並計分（Submit & Mark）</button>
+          <button class="ghost" id="btnExport">匯出答卷JSON（Export JSON）</button>
+          <button class="danger" id="btnReset">清除作答（Reset）</button>
+        </div>
+        <div style="margin-top:10px;">
+          <div>分數（Score）：<span class="score" id="score">—</span></div>
+          <div class="small" id="note"></div>
+          <div class="small warn" id="timeup" style="display:none;">時間到（Time’s up）— 請立即交卷（Submit now）。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="exam"></div>
+</main>
+
+<script>
+/** =========================
+ * 題庫（QUESTION BANK）
+ * 你只要一直加到 60 題即可。
+ * 支援題型（type）：
+ * - "tf"  : True/False（判斷題）
+ * - "mcq" : single choice（單選）
+ * - "multi": multiple choice（多選）
+ * 可選欄位：
+ * - section: 分部（Section）
+ * - promptZh / promptEn
+ * - image: 譜例圖片路徑（例如 "img/q12.png"）
+ * - options: ["...","..."]
+ * - answer:
+ *    tf: "T" 或 "F"
+ *    mcq: 0-based index（例如 2）
+ *    multi: array of indices（例如 [0,3]）
+ * ========================= */
+const QUESTION_BANK = [
+  // =========================================================
+  // Section A：Key / Scale / Circle of Fifths（調號/音階）
+  // =========================================================
+  {
+    id: "G5-A01",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "mcq",
+    promptZh: "D大調（D major）的調號有幾個升號？",
+    promptEn: "How many sharps are in the key signature of D major?",
+    options: ["0（none）", "1（one）", "2（two）", "3（three）"],
+    answer: 2
+  },
+  {
+    id: "G5-A02",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "mcq",
+    promptZh: "E♭大調（E-flat major）的調號有幾個降號？",
+    promptEn: "How many flats are in the key signature of E♭ major?",
+    options: ["2", "3", "4", "5"],
+    answer: 1
+  },
+  {
+    id: "G5-A03",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "mcq",
+    promptZh: "A大調（A major）的關係小調（Relative minor）係邊個？",
+    promptEn: "What is the relative minor of A major?",
+    options: ["F♯小調（F♯ minor）", "E小調（E minor）", "C♯小調（C♯ minor）", "D小調（D minor）"],
+    answer: 2
+  },
+  {
+    id: "G5-A04",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "mcq",
+    promptZh: "C小調（C minor）的關係大調（Relative major）係邊個？",
+    promptEn: "What is the relative major of C minor?",
+    options: ["E♭大調（E♭ major）", "A♭大調（A♭ major）", "G大調（G major）", "F大調（F major）"],
+    answer: 0
+  },
+  {
+    id: "G5-A05",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "tf",
+    promptZh: "和聲小調（Harmonic minor）會將第7級音（7th degree）升高。",
+    promptEn: "Harmonic minor raises the 7th degree.",
+    answer: "T"
+  },
+  {
+    id: "G5-A06",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "tf",
+    promptZh: "旋律小調上行（Melodic minor ascending）會同時升高第6及第7級音。",
+    promptEn: "Melodic minor ascending raises both the 6th and 7th degrees.",
+    answer: "T"
+  },
+  {
+    id: "G5-A07",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "mcq",
+    promptZh: "G小調（G minor）的和聲小調（Harmonic minor）第7級音係？",
+    promptEn: "In G harmonic minor, what is the 7th degree?",
+    options: ["F（natural）", "F♯", "E", "G"],
+    answer: 1
+  },
+  {
+    id: "G5-A08",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "mcq",
+    promptZh: "B♭大調（B-flat major）的調號係？",
+    promptEn: "Which key signature belongs to B♭ major?",
+    options: ["1個降號（1 flat）", "2個降號（2 flats）", "3個降號（3 flats）", "2個升號（2 sharps）"],
+    answer: 1
+  },
+  {
+    id: "G5-A09",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "mcq",
+    promptZh: "F♯小調（F-sharp minor）的關係大調（Relative major）係？",
+    promptEn: "What is the relative major of F♯ minor?",
+    options: ["A大調（A major）", "E大調（E major）", "D大調（D major）", "F♯大調（F♯ major）"],
+    answer: 0
+  },
+  {
+    id: "G5-A10",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "multi",
+    promptZh: "以下哪些調（Keys）有 3 個降號（3 flats）？（可選多項）",
+    promptEn: "Which keys have 3 flats in the key signature? (Tick all that apply)",
+    options: ["E♭大調（E♭ major）", "C小調（C minor）", "A♭大調（A♭ major）", "F小調（F minor）"],
+    answer: [0,1]
+  },
+  {
+    id: "G5-A11",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "multi",
+    promptZh: "以下哪些係「增音程（Augmented intervals）」？（可選多項）",
+    promptEn: "Which of the following are augmented intervals? (Tick all that apply)",
+    options: ["增四度（Augmented 4th）", "純五度（Perfect 5th）", "增二度（Augmented 2nd）", "小三度（Minor 3rd）"],
+    answer: [0,2]
+  },
+  {
+    id: "G5-A12",
+    section: "A 調號與音階（Keys & Scales）",
+    type: "mcq",
+    promptZh: "A♭大調（A-flat major）有幾個降號？",
+    promptEn: "How many flats are in A♭ major?",
+    options: ["3", "4", "5", "6"],
+    answer: 2
+  },
+
+  // =========================================================
+  // Section B：Intervals & Chords（音程與和弦）
+  // =========================================================
+  {
+    id: "G5-B01",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "mcq",
+    promptZh: "C 到 G 的音程係？",
+    promptEn: "What is the interval from C up to G?",
+    options: ["純四度（Perfect 4th）", "純五度（Perfect 5th）", "大六度（Major 6th）", "小六度（Minor 6th）"],
+    answer: 1
+  },
+  {
+    id: "G5-B02",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "mcq",
+    promptZh: "E 到 C（向上）係？",
+    promptEn: "What is the interval from E up to C?",
+    options: ["小六度（Minor 6th）", "大六度（Major 6th）", "純五度（Perfect 5th）", "小七度（Minor 7th）"],
+    answer: 1
+  },
+  {
+    id: "G5-B03",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "tf",
+    promptZh: "減五度（Diminished 5th）同增四度（Augmented 4th）係等音程（Enharmonic）。",
+    promptEn: "A diminished 5th is enharmonic to an augmented 4th.",
+    answer: "T"
+  },
+  {
+    id: "G5-B04",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "mcq",
+    promptZh: "A小三和弦（A minor triad）包含哪些音？",
+    promptEn: "Which notes form an A minor triad?",
+    options: ["A–C–E", "A–C♯–E", "A–D–E", "A–C–E♭"],
+    answer: 0
+  },
+  {
+    id: "G5-B05",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "mcq",
+    promptZh: "G大三和弦（G major triad）係？",
+    promptEn: "Which notes form a G major triad?",
+    options: ["G–B♭–D", "G–B–D", "G–A–D", "G–B–E"],
+    answer: 1
+  },
+  {
+    id: "G5-B06",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "mcq",
+    promptZh: "「第一轉位（1st inversion）」三和弦（Triad）的低音（Bass）係？",
+    promptEn: "In a 1st inversion triad, which chord member is in the bass?",
+    options: ["根音（Root）", "三音（3rd）", "五音（5th）", "七音（7th）"],
+    answer: 1
+  },
+  {
+    id: "G5-B07",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "mcq",
+    promptZh: "C大三和弦（C major triad）第一轉位（1st inversion）嘅低音係？",
+    promptEn: "In 1st inversion of C major, what is the bass note?",
+    options: ["C", "E", "G", "B"],
+    answer: 1
+  },
+  {
+    id: "G5-B08",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "mcq",
+    promptZh: "C大三和弦（C major triad）第二轉位（2nd inversion）嘅低音係？",
+    promptEn: "In 2nd inversion of C major, what is the bass note?",
+    options: ["C", "E", "G", "D"],
+    answer: 2
+  },
+  {
+    id: "G5-B09",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "multi",
+    promptZh: "以下哪些係「減三和弦（Diminished triads）」？（可選多項）",
+    promptEn: "Which are diminished triads? (Tick all that apply)",
+    options: ["B–D–F", "C–E–G", "D–F–A♭", "E–G–B"],
+    answer: [0,2]
+  },
+  {
+    id: "G5-B10",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "tf",
+    promptZh: "屬七和弦（Dominant 7th）係一個「大三和弦 + 小七度（Major triad + minor 7th）」。",
+    promptEn: "A dominant 7th chord is a major triad plus a minor 7th.",
+    answer: "T"
+  },
+  {
+    id: "G5-B11",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "mcq",
+    promptZh: "G7（G–B–D–F）向 C 大調解決（Resolve to C major）時，F 通常去邊個音？",
+    promptEn: "In resolving G7 to C major, where does F usually move?",
+    options: ["到 E（down by step）", "到 G", "到 F", "到 D"],
+    answer: 0
+  },
+  {
+    id: "G5-B12",
+    section: "B 音程與和弦（Intervals & Chords）",
+    type: "mcq",
+    promptZh: "「導音（Leading note）」係大調（Major key）第幾級音？",
+    promptEn: "In a major key, which scale degree is the leading note?",
+    options: ["第5級（5th）", "第6級（6th）", "第7級（7th）", "第2級（2nd）"],
+    answer: 2
+  },
+
+  // =========================================================
+  // Section C：Cadences & Harmony（終止式/和聲功能）
+  // =========================================================
+  {
+    id: "G5-C01",
+    section: "C 終止式與和聲（Cadences & Harmony）",
+    type: "mcq",
+    promptZh: "「正格終止（Perfect cadence）」通常係？",
+    promptEn: "A perfect cadence is usually:",
+    options: ["V–I", "IV–I", "I–V", "V–IV"],
+    answer: 0
+  },
+  {
+    id: "G5-C02",
+    section: "C 終止式與和聲（Cadences & Harmony）",
+    type: "mcq",
+    promptZh: "「半終止（Imperfect cadence / Half cadence）」通常停喺？",
+    promptEn: "An imperfect cadence usually ends on:",
+    options: ["I", "IV", "V", "vi"],
+    answer: 2
+  },
+  {
+    id: "G5-C03",
+    section: "C 終止式與和聲（Cadences & Harmony）",
+    type: "mcq",
+    promptZh: "「變格終止（Plagal cadence）」通常係？",
+    promptEn: "A plagal cadence is usually:",
+    options: ["IV–I", "V–I", "I–V", "ii–V"],
+    answer: 0
+  },
+  {
+    id: "G5-C04",
+    section: "C 終止式與和聲（Cadences & Harmony）",
+    type: "mcq",
+    promptZh: "「阻格終止（Interrupted/Deceptive cadence）」常見係？",
+    promptEn: "An interrupted (deceptive) cadence is commonly:",
+    options: ["V–vi", "V–I", "IV–I", "ii–V"],
+    answer: 0
+  },
+  {
+    id: "G5-C05",
+    section: "C 終止式與和聲（Cadences & Harmony）",
+    type: "tf",
+    promptZh: "正格終止（Perfect cadence）喺大調（Major key）通常需要最後和弦係主和弦（Tonic, I）。",
+    promptEn: "In a major key, a perfect cadence ends with the tonic chord (I).",
+    answer: "T"
+  },
+  {
+    id: "G5-C06",
+    section: "C 終止式與和聲（Cadences & Harmony）",
+    type: "tf",
+    promptZh: "變格終止（Plagal cadence）又叫「Amen 終止（Amen cadence）」。",
+    promptEn: "A plagal cadence is also known as the 'Amen' cadence.",
+    answer: "T"
+  },
+  {
+    id: "G5-C07",
+    section: "C 終止式與和聲（Cadences & Harmony）",
+    type: "mcq",
+    promptZh: "喺 C 大調（C major），屬和弦（Dominant triad）係？",
+    promptEn: "In C major, the dominant triad is:",
+    options: ["C–E–G", "F–A–C", "G–B–D", "D–F–A"],
+    answer: 2
+  },
+  {
+    id: "G5-C08",
+    section: "C 終止式與和聲（Cadences & Harmony）",
+    type: "mcq",
+    promptZh: "喺 G 大調（G major），下屬和弦（Subdominant triad, IV）係？",
+    promptEn: "In G major, the subdominant triad (IV) is:",
+    options: ["C–E–G", "D–F♯–A", "G–B–D", "A–C–E"],
+    answer: 0
+  },
+  {
+    id: "G5-C09",
+    section: "C 終止式與和聲（Cadences & Harmony）",
+    type: "multi",
+    promptZh: "以下哪些終止式（Cadences）會以 V 作結？（可選多項）",
+    promptEn: "Which cadences end on V? (Tick all that apply)",
+    options: ["半終止（Imperfect cadence）", "正格終止（Perfect cadence）", "變格終止（Plagal cadence）", "阻格終止（Interrupted cadence）"],
+    answer: [0]
+  },
+  {
+    id: "G5-C10",
+    section: "C 終止式與和聲（Cadences & Harmony）",
+    type: "mcq",
+    promptZh: "喺 A 小調（A minor），屬七和弦（Dominant 7th）通常係？（用和聲小調概念）",
+    promptEn: "In A minor, the dominant 7th chord is usually (using harmonic minor):",
+    options: ["E–G–B–D", "E–G♯–B–D", "E–G♯–B–D♯", "E–G–B–D♯"],
+    answer: 1
+  },
+
+  // =========================================================
+  // Section D：Time / Rhythm / Grouping（拍子/節奏/分組）
+  // =========================================================
+  {
+    id: "G5-D01",
+    section: "D 拍子與節奏（Time & Rhythm）",
+    type: "mcq",
+    promptZh: "6/8 係屬於：",
+    promptEn: "6/8 is a:",
+    options: ["單拍子（Simple time）", "複拍子（Compound time）", "不規則拍子（Irregular time）", "自由拍子（Free time）"],
+    answer: 1
+  },
+  {
+    id: "G5-D02",
+    section: "D 拍子與節奏（Time & Rhythm）",
+    type: "mcq",
+    promptZh: "6/8 每小節有幾拍（Beats）？每拍係幾多音符價值（Note value）？",
+    promptEn: "In 6/8, how many beats per bar and what note value is each beat?",
+    options: ["2拍；每拍=附點四分音符（dotted crotchet）", "3拍；每拍=四分音符（crotchet）", "6拍；每拍=八分音符（quaver）", "2拍；每拍=四分音符（crotchet）"],
+    answer: 0
+  },
+  {
+    id: "G5-D03",
+    section: "D 拍子與節奏（Time & Rhythm）",
+    type: "mcq",
+    promptZh: "3/4 屬於：",
+    promptEn: "3/4 is a:",
+    options: ["單拍子（Simple time）", "複拍子（Compound time）", "混合拍子（Mixed time）", "不規則拍子（Irregular time）"],
+    answer: 0
+  },
+  {
+    id: "G5-D04",
+    section: "D 拍子與節奏（Time & Rhythm）",
+    type: "tf",
+    promptZh: "複拍子（Compound time）每拍可以自然分成 3 個等份。",
+    promptEn: "In compound time, each beat divides naturally into three equal parts.",
+    answer: "T"
+  },
+  {
+    id: "G5-D05",
+    section: "D 拍子與節奏（Time & Rhythm）",
+    type: "mcq",
+    promptZh: "一個附點四分音符（Dotted crotchet）等於幾多個八分音符（Quavers）？",
+    promptEn: "A dotted crotchet equals how many quavers?",
+    options: ["2", "3", "4", "6"],
+    answer: 1
+  },
+  {
+    id: "G5-D06",
+    section: "D 拍子與節奏（Time & Rhythm）",
+    type: "mcq",
+    promptZh: "以下邊個拍號係「不規則拍子（Irregular time）」？",
+    promptEn: "Which time signature is irregular?",
+    options: ["4/4", "3/8", "5/4", "6/8"],
+    answer: 2
+  },
+  {
+    id: "G5-D07",
+    section: "D 拍子與節奏（Time & Rhythm）",
+    type: "tf",
+    promptZh: "連音（Triplet）係將 3 個音符平均放入原本 2 個同價值音符嘅時值。",
+    promptEn: "A triplet fits three notes into the time of two of the same value.",
+    answer: "T"
+  },
+  {
+    id: "G5-D08",
+    section: "D 拍子與節奏（Time & Rhythm）",
+    type: "mcq",
+    promptZh: "以下邊個最可能代表「切分音（Syncopation）」？",
+    promptEn: "Which is most likely to create syncopation?",
+    options: ["重音落喺弱拍（accent on a weak beat）", "全部音都落喺強拍（all notes on strong beats）", "用慢板（Adagio）", "用漸快（Accelerando）"],
+    answer: 0
+  },
+  {
+    id: "G5-D09",
+    section: "D 拍子與節奏（Time & Rhythm）",
+    type: "multi",
+    promptZh: "以下哪些拍號係複拍子（Compound time）？（可選多項）",
+    promptEn: "Which time signatures are compound? (Tick all that apply)",
+    options: ["6/8", "9/8", "3/4", "12/8"],
+    answer: [0,1,3]
+  },
+  {
+    id: "G5-D10",
+    section: "D 拍子與節奏（Time & Rhythm）",
+    type: "mcq",
+    promptZh: "「弱起（Anacrusis / Upbeat）」係指：",
+    promptEn: "An anacrusis (upbeat) is:",
+    options: ["一首歌開頭不足一小節的引子拍（a pickup before the first full bar）", "最後一小節加長（lengthening the final bar）", "把速度突然加倍（sudden double tempo）", "把音高提高一個八度（raise by an octave）"],
+    answer: 0
+  },
+
+  // =========================================================
+  // Section E：Terms & Signs（術語與記號）
+  // =========================================================
+  {
+    id: "G5-E01",
+    section: "E 術語與記號（Terms & Signs）",
+    type: "mcq",
+    promptZh: "cresc.（Crescendo）意思係：",
+    promptEn: "cresc. means:",
+    options: ["漸弱（Diminuendo）", "漸強（Gradually louder）", "加快（Faster）", "放慢（Slower）"],
+    answer: 1
+  },
+  {
+    id: "G5-E02",
+    section: "E 術語與記號（Terms & Signs）",
+    type: "mcq",
+    promptZh: "rit.（Ritardando）意思係：",
+    promptEn: "rit. means:",
+    options: ["漸快（Accelerando）", "漸慢（Gradually slower）", "立刻慢（Subito slower）", "保持速度（Keep tempo）"],
+    answer: 1
+  },
+  {
+    id: "G5-E03",
+    section: "E 術語與記號（Terms & Signs）",
+    type: "mcq",
+    promptZh: "legato（連奏）意思係：",
+    promptEn: "legato means:",
+    options: ["每個音分開（Detached）", "連貫、不中斷（Smoothly connected）", "強烈（Strong）", "非常快（Very fast）"],
+    answer: 1
+  },
+  {
+    id: "G5-E04",
+    section: "E 術語與記號（Terms & Signs）",
+    type: "mcq",
+    promptZh: "staccato（斷奏）意思係：",
+    promptEn: "staccato means:",
+    options: ["連奏（Smooth）", "斷開、短促（Detached/short）", "漸慢（Slower）", "漸強（Louder）"],
+    answer: 1
+  },
+  {
+    id: "G5-E05",
+    section: "E 術語與記號（Terms & Signs）",
+    type: "tf",
+    promptZh: "p（piano）代表「弱（soft）」。",
+    promptEn: "p (piano) means soft.",
+    answer: "T"
+  },
+  {
+    id: "G5-E06",
+    section: "E 術語與記號（Terms & Signs）",
+    type: "tf",
+    promptZh: "sfz（sforzando）表示突然加強（sudden strong accent）。",
+    promptEn: "sfz indicates a sudden strong accent.",
+    answer: "T"
+  },
+  {
+    id: "G5-E07",
+    section: "E 術語與記號（Terms & Signs）",
+    type: "mcq",
+    promptZh: "Da capo（D.C.）意思係：",
+    promptEn: "D.C. means:",
+    options: ["回到開始（go back to the beginning）", "去結尾（go to the end）", "跳過重複（skip repeats）", "重複上一小節（repeat previous bar）"],
+    answer: 0
+  },
+  {
+    id: "G5-E08",
+    section: "E 術語與記號（Terms & Signs）",
+    type: "mcq",
+    promptZh: "Dal segno（D.S.）意思係：",
+    promptEn: "D.S. means:",
+    options: ["回到開始（beginning）", "回到記號（to the sign）", "去尾聲（to coda）", "重複最後一句（repeat last phrase）"],
+    answer: 1
+  },
+  {
+    id: "G5-E09",
+    section: "E 術語與記號（Terms & Signs）",
+    type: "multi",
+    promptZh: "以下哪些係「力度記號（Dynamic markings）」？（可選多項）",
+    promptEn: "Which are dynamic markings? (Tick all that apply)",
+    options: ["mf（mezzo-forte）", "Allegro", "pp（pianissimo）", "rit."],
+    answer: [0,2]
+  },
+  {
+    id: "G5-E10",
+    section: "E 術語與記號（Terms & Signs）",
+    type: "mcq",
+    promptZh: "Allegro 大致代表：",
+    promptEn: "Allegro generally means:",
+    options: ["慢（Slow）", "中等（Moderate）", "快（Fast）", "極慢（Very slow）"],
+    answer: 2
+  },
+
+  // =========================================================
+  // Section F：Ornaments（裝飾音）
+  // =========================================================
+  {
+    id: "G5-F01",
+    section: "F 裝飾音（Ornaments）",
+    type: "mcq",
+    promptZh: "appoggiatura（倚音）一般係：",
+    promptEn: "An appoggiatura is generally:",
+    options: ["主要音前的「長」裝飾音，通常佔用主要音時值（a longer grace note taking time from the main note）",
+              "主要音前的「短」裝飾音，極快掠過（a very short crushed note）",
+              "兩音快速交替（rapid alternation）",
+              "四音繞音（a four-note figure around the main note）"],
+    answer: 0
+  },
+  {
+    id: "G5-F02",
+    section: "F 裝飾音（Ornaments）",
+    type: "mcq",
+    promptZh: "acciaccatura（碎音）一般係：",
+    promptEn: "An acciaccatura is generally:",
+    options: ["長倚音（long appoggiatura）", "短碎音（short crushed grace note）", "回音（turn）", "顫音（trill）"],
+    answer: 1
+  },
+  {
+    id: "G5-F03",
+    section: "F 裝飾音（Ornaments）",
+    type: "tf",
+    promptZh: "trill（顫音）通常係主要音與其上方鄰音（upper auxiliary note）快速交替。",
+    promptEn: "A trill is a rapid alternation between the main note and the note above.",
+    answer: "T"
+  },
+  {
+    id: "G5-F04",
+    section: "F 裝飾音（Ornaments）",
+    type: "mcq",
+    promptZh: "upper mordent（上波音）通常係：",
+    promptEn: "An upper mordent is usually:",
+    options: ["主音–上方鄰音–主音（main–upper–main）", "主音–下方鄰音–主音（main–lower–main）", "主音–上–主–下（turn）", "兩音持續震動（trill）"],
+    answer: 0
+  },
+  {
+    id: "G5-F05",
+    section: "F 裝飾音（Ornaments）",
+    type: "mcq",
+    promptZh: "lower mordent（下波音）通常係：",
+    promptEn: "A lower mordent is usually:",
+    options: ["主音–上方鄰音–主音", "主音–下方鄰音–主音", "上方倚音", "下方倚音"],
+    answer: 1
+  },
+  {
+    id: "G5-F06",
+    section: "F 裝飾音（Ornaments）",
+    type: "mcq",
+    promptZh: "turn（回音）一般係：",
+    promptEn: "A turn is generally:",
+    options: ["主音–上–主（mordent）", "主音與上方音交替（trill）", "上–主–下–主（upper–main–lower–main）", "短碎音（acciaccatura）"],
+    answer: 2
+  },
+
+  // =========================================================
+  // Section G：Instruments / Clefs / Transposition（樂器/譜號/移調）
+  // =========================================================
+  {
+    id: "G5-G01",
+    section: "G 樂器與移調（Instruments & Transposition）",
+    type: "tf",
+    promptZh: "中提琴（Viola）通常使用中音譜號（Alto clef）。",
+    promptEn: "The viola usually uses the alto clef.",
+    answer: "T"
+  },
+  {
+    id: "G5-G02",
+    section: "G 樂器與移調（Instruments & Transposition）",
+    type: "tf",
+    promptZh: "大提琴（Cello）通常使用低音譜號（Bass clef）。",
+    promptEn: "The cello usually uses the bass clef.",
+    answer: "T"
+  },
+  {
+    id: "G5-G03",
+    section: "G 樂器與移調（Instruments & Transposition）",
+    type: "tf",
+    promptZh: "巴松管（Bassoon）係移調樂器（Transposing instrument）。",
+    promptEn: "The bassoon is a transposing instrument.",
+    answer: "F"
+  },
+  {
+    id: "G5-G04",
+    section: "G 樂器與移調（Instruments & Transposition）",
+    type: "mcq",
+    promptZh: "B♭ 單簧管（Clarinet in B♭）寫 C，實際響起（Concert pitch）係？",
+    promptEn: "A clarinet in B♭ plays written C. What sounds (concert pitch)?",
+    options: ["C", "B♭", "D", "A"],
+    answer: 1
+  },
+  {
+    id: "G5-G05",
+    section: "G 樂器與移調（Instruments & Transposition）",
+    type: "mcq",
+    promptZh: "F 圓號（Horn in F）寫 C，實際響起係？",
+    promptEn: "A horn in F plays written C. What sounds?",
+    options: ["C", "F", "G", "B♭"],
+    answer: 1
+  },
+  {
+    id: "G5-G06",
+    section: "G 樂器與移調（Instruments & Transposition）",
+    type: "mcq",
+    promptZh: "短笛（Piccolo）係：",
+    promptEn: "The piccolo is:",
+    options: ["不移調（non-transposing）", "高八度移調（transposes an octave higher）", "低八度移調（transposes an octave lower）", "移調大二度（transposes a major 2nd）"],
+    answer: 1
+  },
+  {
+    id: "G5-G07",
+    section: "G 樂器與移調（Instruments & Transposition）",
+    type: "mcq",
+    promptZh: "倍低音提琴（Double bass）記譜通常：",
+    promptEn: "The double bass is notated:",
+    options: ["實音（at concert pitch）", "高八度（8ve higher）", "低八度（8ve lower）", "移調大二度（M2）"],
+    answer: 2
+  },
+  {
+    id: "G5-G08",
+    section: "G 樂器與移調（Instruments & Transposition）",
+    type: "mcq",
+    promptZh: "以下哪個木管（Woodwind）通常音域最高（highest sounding）？",
+    promptEn: "Which woodwind is generally the highest sounding?",
+    options: ["長笛（Flute）", "雙簧管（Oboe）", "短笛（Piccolo）", "單簧管（Clarinet）"],
+    answer: 2
+  },
+  {
+    id: "G5-G09",
+    section: "G 樂器與移調（Instruments & Transposition）",
+    type: "tf",
+    promptZh: "次中音薩克斯（Tenor saxophone in B♭）通常係移調樂器（Transposing instrument）。",
+    promptEn: "The tenor saxophone in B♭ is a transposing instrument.",
+    answer: "T"
+  },
+  {
+    id: "G5-G10",
+    section: "G 樂器與移調（Instruments & Transposition）",
+    type: "mcq",
+    promptZh: "中音譜號（Alto clef）的中線（middle line）代表邊個音？",
+    promptEn: "In alto clef, the middle line represents which note?",
+    options: ["C（Middle C）", "D", "E", "F"],
+    answer: 0
+  },
+
+  // =========================================================
+  // Section H：Notation & Rules（記譜規則：連線/延音線/反覆等）
+  // =========================================================
+  {
+    id: "G5-H01",
+    section: "H 記譜規則（Notation Rules）",
+    type: "tf",
+    promptZh: "連線（Slur）表示連奏（Legato）。",
+    promptEn: "A slur indicates legato.",
+    answer: "T"
+  },
+  {
+    id: "G5-H02",
+    section: "H 記譜規則（Notation Rules）",
+    type: "tf",
+    promptZh: "延音線（Tie）係把兩個相同音高（Same pitch）的音符時值相加。",
+    promptEn: "A tie adds the values of two notes of the same pitch.",
+    answer: "T"
+  },
+  {
+    id: "G5-H03",
+    section: "H 記譜規則（Notation Rules）",
+    type: "mcq",
+    promptZh: "重複記號（Repeat signs）: 若見到 ||:  …  :||，應該：",
+    promptEn: "If you see ||: … :||, you should:",
+    options: ["只彈一次（play once）", "由頭彈到尾（go to beginning）", "重複括住的段落（repeat the section）", "跳去尾聲（go to coda）"],
+    answer: 2
+  },
+  {
+    id: "G5-H04",
+    section: "H 記譜規則（Notation Rules）",
+    type: "mcq",
+    promptZh: "若寫 8va 於一段旋律上方，表示：",
+    promptEn: "8va written above a passage means:",
+    options: ["低八度（8ve lower）", "高八度（8ve higher）", "加快（faster）", "加強（louder）"],
+    answer: 1
+  },
+  {
+    id: "G5-H05",
+    section: "H 記譜規則（Notation Rules）",
+    type: "mcq",
+    promptZh: "若寫 8vb（或 8va bassa）於一段旋律，表示：",
+    promptEn: "8vb (or 8va bassa) means:",
+    options: ["高八度", "低八度", "重複一次", "漸慢"],
+    answer: 1
+  },
+  {
+    id: "G5-H06",
+    section: "H 記譜規則（Notation Rules）",
+    type: "tf",
+    promptZh: "臨時記號（Accidental）通常只影響同一小節（Bar/Measure）內同音名同音高嘅音。",
+    promptEn: "An accidental usually applies only within the bar to that pitch.",
+    answer: "T"
+  },
+  {
+    id: "G5-H07",
+    section: "H 記譜規則（Notation Rules）",
+    type: "mcq",
+    promptZh: "「倚音（Appoggiatura）」同「碎音（Acciaccatura）」最大分別通常係：",
+    promptEn: "The main difference between an appoggiatura and an acciaccatura is usually:",
+    options: ["倚音較「佔時值」（takes time），碎音較「極短掠過」（very short）",
+              "倚音一定向下，碎音一定向上",
+              "倚音只出現於大調，碎音只出現於小調",
+              "兩者完全一樣"],
+    answer: 0
+  },
+
+  // =========================================================
+  // Section I：Melody / Sequence / Modulation basics（旋律概念/移調）
+  // =========================================================
+  {
+    id: "G5-I01",
+    section: "I 旋律與移調（Melody & Modulation Basics）",
+    type: "mcq",
+    promptZh: "「順序（Sequence）」係指：",
+    promptEn: "A sequence is:",
+    options: ["同一動機（motif）以不同音高重複（repeated at different pitch levels）",
+              "同一音高不斷重複（repetition of one note）",
+              "把節奏變慢一倍（augmentation only）",
+              "把力度逐步變強（crescendo）"],
+    answer: 0
+  },
+  {
+    id: "G5-I02",
+    section: "I 旋律與移調（Melody & Modulation Basics）",
+    type: "tf",
+    promptZh: "「轉調（Modulation）」必定要改變拍號（Time signature）。",
+    promptEn: "Modulation always requires changing the time signature.",
+    answer: "F"
+  },
+  {
+    id: "G5-I03",
+    section: "I 旋律與移調（Melody & Modulation Basics）",
+    type: "mcq",
+    promptZh: "由 C 大調（C major）轉去 G 大調（G major），新調號會多咗：",
+    promptEn: "From C major to G major, the key signature gains:",
+    options: ["1個升號（F♯）", "1個降號（B♭）", "2個升號", "2個降號"],
+    answer: 0
+  },
+  {
+    id: "G5-I04",
+    section: "I 旋律與移調（Melody & Modulation Basics）",
+    type: "mcq",
+    promptZh: "由 F 大調（F major）轉去 B♭ 大調（B♭ major），新調號會：",
+    promptEn: "From F major to B♭ major, the key signature:",
+    options: ["少1個降號", "多1個降號", "多1個升號", "不變"],
+    answer: 1
+  },
+
+  // =========================================================
+  // Section J：Exam-style Mixed（綜合題：概念判斷/常見陷阱）
+  // =========================================================
+  {
+    id: "G5-J01",
+    section: "J 綜合（Mixed Concepts）",
+    type: "tf",
+    promptZh: "小提琴（Violin）通常用高音譜號（Treble clef）。",
+    promptEn: "The violin usually uses the treble clef.",
+    answer: "T"
+  },
+  {
+    id: "G5-J02",
+    section: "J 綜合（Mixed Concepts）",
+    type: "tf",
+    promptZh: "長號（Trombone）一般音域（Range）比大號（Tuba）高。",
+    promptEn: "The trombone generally has a higher range than the tuba.",
+    answer: "T"
+  },
+  {
+    id: "G5-J03",
+    section: "J 綜合（Mixed Concepts）",
+    type: "tf",
+    promptZh: "中提琴（Viola）可以演奏 arco（用弓）（Arco = with the bow）。",
+    promptEn: "A viola might be played 'arco' (with the bow).",
+    answer: "T"
+  },
+  {
+    id: "G5-J04",
+    section: "J 綜合（Mixed Concepts）",
+    type: "mcq",
+    promptZh: "pizz.（Pizzicato）意思係：",
+    promptEn: "pizz. means:",
+    options: ["用弓（with bow）", "撥弦（plucked strings）", "用弱音器（with mute）", "用踏板（with pedal）"],
+    answer: 1
+  },
+  {
+    id: "G5-J05",
+    section: "J 綜合（Mixed Concepts）",
+    type: "mcq",
+    promptZh: "arco（Arco）意思係：",
+    promptEn: "arco means:",
+    options: ["改為用弓拉奏（return to bowing）", "改為撥奏（pizzicato）", "漸慢（rit.）", "跳去尾聲（to coda）"],
+    answer: 0
+  },
+  {
+    id: "G5-J06",
+    section: "J 綜合（Mixed Concepts）",
+    type: "mcq",
+    promptZh: "tenuto（—）記號通常表示：",
+    promptEn: "The tenuto mark (—) usually indicates:",
+    options: ["短促（short）", "持續、充分時值（held/sustained）", "突然加強（sfz）", "滑音（glissando）"],
+    answer: 1
+  },
+  {
+    id: "G5-J07",
+    section: "J 綜合（Mixed Concepts）",
+    type: "mcq",
+    promptZh: "grace note（裝飾音小音符）最常見用於：",
+    promptEn: "Grace notes are most commonly used as:",
+    options: ["裝飾（ornamentation）", "調號（key signature）", "拍號（time signature）", "終止（cadence）"],
+    answer: 0
+  },
+  {
+    id: "G5-J08",
+    section: "J 綜合（Mixed Concepts）",
+    type: "multi",
+    promptZh: "以下哪些屬於「移調樂器（Transposing instruments）」？（可選多項）",
+    promptEn: "Which are transposing instruments? (Tick all that apply)",
+    options: ["B♭ 單簧管（Clarinet in B♭）", "長笛（Flute）", "F 圓號（Horn in F）", "短笛（Piccolo）"],
+    answer: [0,2,3]
+  },
+  {
+    id: "G5-J09",
+    section: "J 綜合（Mixed Concepts）",
+    type: "mcq",
+    promptZh: "在大調（Major key）中，「屬音（Dominant）」係第幾級？",
+    promptEn: "In a major key, the dominant is scale degree:",
+    options: ["第4級（4th）", "第5級（5th）", "第6級（6th）", "第7級（7th）"],
+    answer: 1
+  },
+  {
+    id: "G5-J10",
+    section: "J 綜合（Mixed Concepts）",
+    type: "mcq",
+    promptZh: "「下屬音（Subdominant）」係第幾級？",
+    promptEn: "The subdominant is scale degree:",
+    options: ["第2級", "第3級", "第4級", "第5級"],
+    answer: 2
+  },
+
+  // =========================================================
+  // Section K：More Keys/Scales/Intervals（加強：調/音程）
+  // =========================================================
+  {
+    id: "G5-K01",
+    section: "K 加強題：調/音程（Extra Keys & Intervals）",
+    type: "mcq",
+    promptZh: "E 大調（E major）有幾個升號？",
+    promptEn: "How many sharps are in E major?",
+    options: ["2", "3", "4", "5"],
+    answer: 2
+  },
+  {
+    id: "G5-K02",
+    section: "K 加強題：調/音程（Extra Keys & Intervals）",
+    type: "mcq",
+    promptZh: "B 大調（B major）有幾個升號？",
+    promptEn: "How many sharps are in B major?",
+    options: ["3", "4", "5", "6"],
+    answer: 2
+  },
+  {
+    id: "G5-K03",
+    section: "K 加強題：調/音程（Extra Keys & Intervals）",
+    type: "mcq",
+    promptZh: "D♭ 大調（D-flat major）有幾個降號？",
+    promptEn: "How many flats are in D♭ major?",
+    options: ["3", "4", "5", "6"],
+    answer: 2
+  },
+  {
+    id: "G5-K04",
+    section: "K 加強題：調/音程（Extra Keys & Intervals）",
+    type: "mcq",
+    promptZh: "C 到 E♭（向上）係咩音程？",
+    promptEn: "What is the interval from C up to E♭?",
+    options: ["大三度（Major 3rd）", "小三度（Minor 3rd）", "純四度（Perfect 4th）", "增二度（Augmented 2nd）"],
+    answer: 1
+  },
+  {
+    id: "G5-K05",
+    section: "K 加強題：調/音程（Extra Keys & Intervals）",
+    type: "mcq",
+    promptZh: "F 到 B（向上）係咩音程？",
+    promptEn: "What is the interval from F up to B?",
+    options: ["純四度（P4）", "增四度（A4）", "純五度（P5）", "減五度（d5）"],
+    answer: 1
+  },
+  {
+    id: "G5-K06",
+    section: "K 加強題：調/音程（Extra Keys & Intervals）",
+    type: "tf",
+    promptZh: "A♭ 與 G♯ 係等音（Enharmonic notes）。",
+    promptEn: "A♭ and G♯ are enharmonic notes.",
+    answer: "T"
+  },
+  {
+    id: "G5-K07",
+    section: "K 加強題：調/音程（Extra Keys & Intervals）",
+    type: "mcq",
+    promptZh: "E♭ 小調（E-flat minor）嘅調號通常有：",
+    promptEn: "E♭ minor usually has:",
+    options: ["4個降號", "5個降號", "6個降號", "7個降號"],
+    answer: 2
+  },
+
+  // =========================================================
+  // Section L：Final Mixed & Practical Theory（最後綜合）
+  // =========================================================
+  {
+    id: "G5-L01",
+    section: "L 最後綜合（Final Mixed）",
+    type: "mcq",
+    promptZh: "在 4/4 中，一個全音符（Semibreve）等於幾多個四分音符（Crotchets）？",
+    promptEn: "In 4/4, one semibreve equals how many crotchets?",
+    options: ["2", "3", "4", "6"],
+    answer: 2
+  },
+  {
+    id: "G5-L02",
+    section: "L 最後綜合（Final Mixed）",
+    type: "tf",
+    promptZh: "「連音（Tuplet）」只可以係三連音（Triplet）。",
+    promptEn: "Tuplets can only be triplets.",
+    answer: "F"
+  },
+  {
+    id: "G5-L03",
+    section: "L 最後綜合（Final Mixed）",
+    type: "mcq",
+    promptZh: "pp 比 p 更：",
+    promptEn: "pp is:",
+    options: ["更強（louder）", "更弱（softer）", "更快（faster）", "更慢（slower）"],
+    answer: 1
+  },
+  {
+    id: "G5-L04",
+    section: "L 最後綜合（Final Mixed）",
+    type: "mcq",
+    promptZh: "「Con brio」大致意思係：",
+    promptEn: "Con brio means:",
+    options: ["帶活力/精神（with vigor/spirit）", "非常慢（very slow）", "很輕柔（very softly）", "反覆一次（repeat once）"],
+    answer: 0
+  },
+  {
+    id: "G5-L05",
+    section: "L 最後綜合（Final Mixed）",
+    type: "mcq",
+    promptZh: "「Cantabile」大致意思係：",
+    promptEn: "Cantabile means:",
+    options: ["如歌地（in a singing style）", "急促地（hurried）", "斷奏（staccato）", "強烈（marcato）"],
+    answer: 0
+  },
+  {
+    id: "G5-L06",
+    section: "L 最後綜合（Final Mixed）",
+    type: "multi",
+    promptZh: "以下哪些係常見「速度變化（Tempo change）」術語？（可選多項）",
+    promptEn: "Which are tempo-change terms? (Tick all that apply)",
+    options: ["rit.（ritardando）", "accel.（accelerando）", "mf", "a tempo（回復原速）"],
+    answer: [0,1,3]
+  },
+  {
+    id: "G5-L07",
+    section: "L 最後綜合（Final Mixed）",
+    type: "mcq",
+    promptZh: "「a tempo」意思係：",
+    promptEn: "a tempo means:",
+    options: ["回復原本速度（return to the previous speed）", "立刻更慢（suddenly slower）", "立刻更快（suddenly faster）", "重複一次（repeat）"],
+    answer: 0
+  },
+  {
+    id: "G5-L08",
+    section: "L 最後綜合（Final Mixed）",
+    type: "tf",
+    promptZh: "「主和弦（Tonic, I）」通常有「穩定/終結（stable/at rest）」感覺。",
+    promptEn: "The tonic chord (I) usually feels stable / at rest.",
+    answer: "T"
+  },
+  {
+    id: "G5-L09",
+    section: "L 最後綜合（Final Mixed）",
+    type: "mcq",
+    promptZh: "在 C 大調，導音（Leading note）係：",
+    promptEn: "In C major, the leading note is:",
+    options: ["A", "B", "C", "D"],
+    answer: 1
+  },
+  {
+    id: "G5-L10",
+    section: "L 最後綜合（Final Mixed）",
+    type: "mcq",
+    promptZh: "在 E♭ 大調，主音（Tonic）係：",
+    promptEn: "In E♭ major, the tonic is:",
+    options: ["E♭", "B♭", "A♭", "F"],
+    answer: 0
+  },
+  {
+    id: "G5-L11",
+    section: "L 最後綜合（Final Mixed）",
+    type: "mcq",
+    promptZh: "在 D 大調，屬音（Dominant）係：",
+    promptEn: "In D major, the dominant is:",
+    options: ["A", "D", "G", "E"],
+    answer: 0
+  },
+  {
+    id: "G5-L12",
+    section: "L 最後綜合（Final Mixed）",
+    type: "tf",
+    promptZh: "阻格終止（Interrupted cadence）會令聽眾有「意料之外（unexpected）」感覺。",
+    promptEn: "An interrupted cadence often sounds unexpected.",
+    answer: "T"
+  }
+];
+
+// 考試時間：2 小時（2 hours）
+const EXAM_SECONDS = 2 * 60 * 60;
+
+let started = false;
+let remaining = EXAM_SECONDS;
+let timerHandle = null;
+
+const $ = (id) => document.getElementById(id);
+
+function pad(n){ return String(n).padStart(2,"0"); }
+function fmt(sec){
+  const h = Math.floor(sec/3600);
+  const m = Math.floor((sec%3600)/60);
+  const s = sec%60;
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function groupBySection(items){
+  const map = new Map();
+  for (const q of items){
+    const key = q.section || "未分類（Unsectioned）";
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(q);
+  }
+  return map;
+}
+
+function render(){
+  const host = $("exam");
+  host.innerHTML = "";
+
+  const sections = groupBySection(QUESTION_BANK);
+  let qNo = 0;
+
+  for (const [secName, qs] of sections.entries()){
+    const secCard = document.createElement("div");
+    secCard.className = "card";
+    secCard.innerHTML = `<div class="q-title">${secName}</div><div class="small">共（Total）：${qs.length} 題</div>`;
+    host.appendChild(secCard);
+
+    for (const q of qs){
+      qNo++;
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.qid = q.id;
+
+      const title = `第 ${qNo} 題（Q${qNo}）`;
+      const zh = q.promptZh ? `題目：${q.promptZh}` : "";
+      const en = q.promptEn ? `（${q.promptEn}）` : "";
+
+      let html = `
+        <div class="q-title">${title}</div>
+        <div class="q-sub">${zh} ${en}</div>
+      `;
+
+      if (q.image){
+        html += `<div class="imgbox" style="margin:10px 0;"><img alt="music example" src="${q.image}"></div>`;
+      }
+
+      html += `<div class="opts">${renderOptions(q, qNo)}</div>`;
+      card.innerHTML = html;
+      host.appendChild(card);
+    }
+  }
+
+  $("timer").textContent = fmt(remaining);
+}
+
+function renderOptions(q, qNo){
+  const name = `q_${q.id}`;
+
+  if (q.type === "tf"){
+    return `
+      <label><input type="radio" name="${name}" value="T"> TRUE（對）</label>
+      <label><input type="radio" name="${name}" value="F"> FALSE（錯）</label>
+    `;
+  }
+
+  if (q.type === "mcq"){
+    return q.options.map((opt, idx) => `
+      <label><input type="radio" name="${name}" value="${idx}"> ${opt}</label>
+    `).join("");
+  }
+
+  if (q.type === "multi"){
+    return q.options.map((opt, idx) => `
+      <label><input type="checkbox" name="${name}" value="${idx}"> ${opt}</label>
+    `).join("");
+  }
+
+  return `<div class="small warn">未支援題型（Unsupported type）：${q.type}</div>`;
+}
+
+function getResponse(q){
+  const name = `q_${q.id}`;
+  if (q.type === "tf" || q.type === "mcq"){
+    const chosen = document.querySelector(`input[name="${name}"]:checked`);
+    return chosen ? chosen.value : null;
+  }
+  if (q.type === "multi"){
+    const chosen = [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(x => Number(x.value));
+    return chosen.length ? chosen : [];
+  }
+  return null;
+}
+
+function arraysEqualAsSets(a,b){
+  const sa = new Set(a);
+  const sb = new Set(b);
+  if (sa.size !== sb.size) return false;
+  for (const x of sa) if (!sb.has(x)) return false;
+  return true;
+}
+
+function mark(){
+  let total = 0;
+  let got = 0;
+  let autoMarkable = 0;
+
+  const details = [];
+
+  for (const q of QUESTION_BANK){
+    total++;
+    const resp = getResponse(q);
+
+    // 只有有標準答案先自動計分（auto-markable）
+    if (q.answer !== undefined){
+      autoMarkable++;
+      let correct = false;
+
+      if (q.type === "tf"){
+        correct = (resp === q.answer);
+      } else if (q.type === "mcq"){
+        correct = (resp !== null && Number(resp) === q.answer);
+      } else if (q.type === "multi"){
+        correct = Array.isArray(resp) && arraysEqualAsSets(resp, q.answer);
+      }
+
+      if (correct) got++;
+
+      details.push({ id: q.id, type: q.type, response: resp, answer: q.answer, correct });
+    } else {
+      details.push({ id: q.id, type: q.type, response: resp, answer: null, correct: null });
+    }
+  }
+
+  $("score").textContent = `${got}/${autoMarkable}`;
+  $("note").textContent = `已自動批改（Auto-marked）：${autoMarkable} 題；未設標準答案者會顯示 correct=null。`;
+
+  return details;
+}
+
+function exportJSON(){
+  const payload = {
+    candidate: {
+      name: $("candidateName").value || "",
+      id: $("candidateId").value || ""
+    },
+    started,
+    remainingSeconds: remaining,
+    exportedAt: new Date().toISOString(),
+    answers: QUESTION_BANK.map(q => ({ qid: q.id, type: q.type, response: getResponse(q) })),
+    marking: mark()
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `music-theory-exam_${(payload.candidate.name || "candidate")}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function resetAll(){
+  if (!confirm("確定清除所有作答？（Reset all answers?）")) return;
+  document.querySelectorAll("input[type=radio], input[type=checkbox]").forEach(i => i.checked = false);
+  $("score").textContent = "—";
+  $("note").textContent = "";
+}
+
+function start(){
+  if (started) return;
+  started = true;
+  $("status").textContent = "進行中（In progress）";
+  timerHandle = setInterval(() => {
+    remaining--;
+    $("timer").textContent = fmt(Math.max(0, remaining));
+
+    if (remaining <= 0){
+      clearInterval(timerHandle);
+      $("timeup").style.display = "block";
+      $("status").textContent = "時間到（Time’s up）";
+    }
+  }, 1000);
+}
+
+$("btnStart").addEventListener("click", start);
+$("btnSubmit").addEventListener("click", () => {
+  if (!started) start();
+  mark();
+  $("status").textContent = "已交卷（Submitted）";
+});
+$("btnExport").addEventListener("click", exportJSON);
+$("btnReset").addEventListener("click", resetAll);
+
+render();
+</script>
+</body>
+</html>
