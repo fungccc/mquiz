@@ -140,7 +140,8 @@
             border-radius: 5px;
         }
         .pinyin-row { display: flex; gap: 10px; margin-bottom: 2px; }
-        .pinyin-label { font-weight: bold; color: #888; width: 40px; flex-shrink: 0; }
+        .pinyin-label { font-weight: bold; color: #888; width: 65px; flex-shrink: 0; text-align: right; margin-right: 5px; }
+        .pinyin-text { font-family: monospace; font-size: 15px; color: #333; }
 
         .stats {
             margin-top: 20px;
@@ -209,12 +210,12 @@
             
             <div id="pronunciation-box" class="pronunciation-guide hidden">
                 <div class="pinyin-row">
-                    <span class="pinyin-label">粵:</span>
-                    <span id="canto-text"></span>
+                    <span class="pinyin-label">粵語擬音:</span>
+                    <span id="canto-text" class="pinyin-text"></span>
                 </div>
                 <div class="pinyin-row">
-                    <span class="pinyin-label">普:</span>
-                    <span id="mando-text"></span>
+                    <span class="pinyin-label">國語擬音:</span>
+                    <span id="mando-text" class="pinyin-text"></span>
                 </div>
             </div>
         </div>
@@ -231,150 +232,143 @@
 <script>
     // --- Data Configuration ---
     
-    // 語言代碼對照表 (Language Mapping for SpeechSynthesis)
+    // 語言代碼對照表
     const langMap = {
         "Italian": "it-IT",
         "German": "de-DE",
         "French": "fr-FR",
-        "Latin": "it-IT", // 拉丁文使用義大利發音
+        "Latin": "it-IT", 
         "English": "en-US"
     };
 
-    /* Data Structure:
-       term: The music term (cleaned for TTS)
-       displayTerm: (Optional) If you want to show abbreviations in the big question text
-       ipa: IPA for the term
-       def: Chinese Definition
-       lang: Origin Language
-       en: English Definition
-       canto: Cantonese Romanization for the CHINESE definition
-       mando: Mandarin Pinyin for the CHINESE definition
+    /* canto: 粵語空耳/擬音 (Transliteration closest to Cantonese sounds)
+       mando: 國語空耳/擬音 (Transliteration closest to Mandarin sounds)
     */
     const musicTerms = [
         // --- Tempo / Speed ---
-        { term: "langsam", ipa: "/ˈlaŋzaːm/", def: "慢的", lang: "German", en: "Slow", canto: "Maan Dik", mando: "Màn De" },
-        { term: "lent", ipa: "/lɑ̃/", def: "慢的", lang: "French", en: "Slow", canto: "Maan Dik", mando: "Màn De" },
-        { term: "largo", ipa: "/ˈlar.ɡo/", def: "廣板 (寬廣地、緩慢地)", lang: "Italian", en: "Broad, slow", canto: "Gwong Baan", mando: "Guǎng Bǎn" },
-        { term: "lento", ipa: "/ˈlɛn.to/", def: "慢板", lang: "Italian", en: "Slow", canto: "Maan Baan", mando: "Màn Bǎn" },
-        { term: "larghetto", ipa: "/larˈɡet.to/", def: "小廣板 (比 Largo 稍快)", lang: "Italian", en: "Rather broad (faster than Largo)", canto: "Siu Gwong Baan", mando: "Xiǎo Guǎng Bǎn" },
-        { term: "andantino", ipa: "/an.danˈti.no/", def: "小行板 (比 Andante 稍快或稍慢)", lang: "Italian", en: "Slightly faster/slower than Andante", canto: "Siu Hang Baan", mando: "Xiǎo Xíng Bǎn" },
-        { term: "andante", ipa: "/anˈdan.te/", def: "行板 (行走的初度)", lang: "Italian", en: "Walking pace", canto: "Hang Baan", mando: "Xíng Bǎn" },
-        { term: "comodo", ipa: "/ˈkɔ.mo.do/", def: "舒適地、自在的速度", lang: "Italian", en: "Comfortable, convenient tempo", canto: "Syv Sik Dei", mando: "Shū Shì De" },
-        { term: "modéré", ipa: "/mɔ.de.ʁe/", def: "中等的、有節制的", lang: "French", en: "Moderate", canto: "Zung Dang", mando: "Zhōng Děng" },
-        { term: "mäßig", ipa: "/ˈmɛːsɪç/", def: "中等的、適度的 (常拼為 mässig)", lang: "German", en: "Moderate", canto: "Sik Dou", mando: "Shì Dù" },
-        { term: "meno mosso", ipa: "/ˈme.no ˈmɔs.so/", def: "稍慢 (動作較少)", lang: "Italian", en: "Less movement (slower)", canto: "Siu Dung Zok", mando: "Shāo Màn" },
-        { term: "retenu", ipa: "/ʁə.tə.ny/", def: "突慢 (被勒住)", lang: "French", en: "Held back", canto: "Dat Maan", mando: "Tū Màn" },
-        { term: "rubato", ipa: "/ruˈba.to/", def: "彈性速度", lang: "Italian", en: "Robbed time (flexible tempo)", canto: "Taan Sing Cuk Dou", mando: "Tán Xìng Sù Dù" },
-        { term: "ritenuto", ipa: "/ri.teˈnu.to/", def: "突慢 (縮寫 rit.)", lang: "Italian", en: "Held back", canto: "Dat Maan", mando: "Tū Màn" },
-        { term: "rallentando", ipa: "/ral.lenˈtan.do/", def: "漸慢 (縮寫 rall.)", lang: "Italian", en: "Gradually slower", canto: "Zim Maan", mando: "Jiàn Màn" },
-        { term: "ritardando", ipa: "/ri.tarˈdan.do/", def: "漸慢 (縮寫 rit.)", lang: "Italian", en: "Gradually slower", canto: "Zim Maan", mando: "Jiàn Màn" },
-        { term: "a tempo", ipa: "/a ˈtɛm.po/", def: "回原速", lang: "Italian", en: "Back to original speed", canto: "Wui Jyun Cuk", mando: "Huí Yuán Sù" },
-        { term: "come prima", ipa: "/ˈko.me ˈpri.ma/", def: "如初 (回到最初狀態)", lang: "Italian", en: "As before", canto: "Jyu Co", mando: "Rú Chū" },
-        { term: "alla breve", ipa: "/ˈal.la ˈbrɛ.ve/", def: "二二拍 (以二分音符為一拍)", lang: "Italian", en: "Cut common time (2/2)", canto: "Ji Ji Paak", mando: "Èr Èr Pāi" },
-        { term: "alla marcia", ipa: "/ˈal.la ˈmar.tʃa/", def: "進行曲風格", lang: "Italian", en: "In the style of a march", canto: "Zeon Hang Kuk", mando: "Jìn Xíng Qǔ" },
-        { term: "grazioso", ipa: "/ɡratˈtsjo.zo/", def: "優雅地", lang: "Italian", en: "Graceful", canto: "Jau Ngaa Dei", mando: "Yōu Yǎ De" },
-        { term: "allegretto", ipa: "/al.leˈɡret.to/", def: "小快板 (比 Allegro 稍慢)", lang: "Italian", en: "Fairly fast", canto: "Siu Faai Baan", mando: "Xiǎo Kuài Bǎn" },
-        { term: "allegro", ipa: "/alˈle.ɡro/", def: "快板", lang: "Italian", en: "Fast, lively", canto: "Faai Baan", mando: "Kuài Bǎn" },
-        { term: "più mosso", ipa: "/pju ˈmɔs.so/", def: "稍快 (動作更多)", lang: "Italian", en: "More movement", canto: "Saau Faai", mando: "Shāo Kuài" },
-        { term: "animato", ipa: "/a.niˈma.to/", def: "生動地、活躍地", lang: "Italian", en: "Animated", canto: "Saang Dung", mando: "Shēng Dòng" },
-        { term: "vivace", ipa: "/viˈva.tʃe/", def: "甚快 / 充滿活力", lang: "Italian", en: "Lively, quick", canto: "Sam Faai", mando: "Shèn Kuài" },
-        { term: "vivo", ipa: "/ˈvi.vo/", def: "活潑地", lang: "Italian", en: "Lively", canto: "Wut Put", mando: "Huó Pō" },
-        { term: "stringendo", ipa: "/strinˈdʒɛn.do/", def: "加緊 (漸快)", lang: "Italian", en: "Pressing on (faster)", canto: "Gaa Gan", mando: "Jiā Jǐn" },
-        { term: "vite", ipa: "/vit/", def: "快速地", lang: "French", en: "Fast", canto: "Faai Cuk", mando: "Kuài Sù" },
-        { term: "schnell", ipa: "/ʃnɛl/", def: "快速地", lang: "German", en: "Fast", canto: "Faai Cuk", mando: "Kuài Sù" },
-        { term: "presto", ipa: "/ˈprɛs.to/", def: "急板 (很快)", lang: "Italian", en: "Very fast", canto: "Gap Baan", mando: "Jí Bǎn" },
-        { term: "prestissimo", ipa: "/presˈtis.si.mo/", def: "最急板 (極快)", lang: "Italian", en: "As fast as possible", canto: "Zeoi Gap Baan", mando: "Zuì Jí Bǎn" },
-        { term: "accelerando", ipa: "/at.tʃe.leˈran.do/", def: "漸快 (縮寫 accel.)", lang: "Italian", en: "Gradually faster", canto: "Zim Faai", mando: "Jiàn Kuài" },
+        { term: "langsam", ipa: "/ˈlaŋzaːm/", def: "慢的", lang: "German", en: "Slow", canto: "Laang-Zaam", mando: "Lāng-Zām" },
+        { term: "lent", ipa: "/lɑ̃/", def: "慢的", lang: "French", en: "Slow", canto: "Long", mando: "Lāng" },
+        { term: "largo", ipa: "/ˈlar.ɡo/", def: "廣板 (寬廣地、緩慢地)", lang: "Italian", en: "Broad, slow", canto: "Laa-Go", mando: "Lā-Gōu" },
+        { term: "lento", ipa: "/ˈlɛn.to/", def: "慢板", lang: "Italian", en: "Slow", canto: "Len-Toe", mando: "Lēn-Tōu" },
+        { term: "larghetto", ipa: "/larˈɡet.to/", def: "小廣板", lang: "Italian", en: "Rather broad", canto: "Laa-Get-Toe", mando: "Lā-Gěi-Tōu" },
+        { term: "andantino", ipa: "/an.danˈti.no/", def: "小行板", lang: "Italian", en: "Slightly faster/slower than Andante", canto: "An-Daan-Ti-No", mando: "Ān-Dàn-Tī-Nuò" },
+        { term: "andante", ipa: "/anˈdan.te/", def: "行板", lang: "Italian", en: "Walking pace", canto: "An-Daan-Tay", mando: "Ān-Dàn-Tēi" },
+        { term: "comodo", ipa: "/ˈkɔ.mo.do/", def: "舒適地", lang: "Italian", en: "Comfortable", canto: "Ko-Mo-Do", mando: "Kōu-Mó-Duō" },
+        { term: "modéré", ipa: "/mɔ.de.ʁe/", def: "中等的", lang: "French", en: "Moderate", canto: "Mo-Day-Ray", mando: "Mó-Dé-Réi" },
+        { term: "mäßig", ipa: "/ˈmɛːsɪç/", def: "中等的", lang: "German", en: "Moderate", canto: "Me-Sich", mando: "Mēi-Sī-Hē" },
+        { term: "meno mosso", ipa: "/ˈme.no ˈmɔs.so/", def: "稍慢", lang: "Italian", en: "Less movement", canto: "May-No Mos-So", mando: "Mēi-Nuò Mó-Suǒ" },
+        { term: "retenu", ipa: "/ʁə.tə.ny/", def: "突慢", lang: "French", en: "Held back", canto: "Re-Ten-New", mando: "Ruē-Tè-Niū" },
+        { term: "rubato", ipa: "/ruˈba.to/", def: "彈性速度", lang: "Italian", en: "Robbed time", canto: "Ru-Baa-Toe", mando: "Lǔ-Bā-Tōu" },
+        { term: "ritenuto", ipa: "/ri.teˈnu.to/", def: "突慢", lang: "Italian", en: "Held back", canto: "Ri-Ten-Nu-Toe", mando: "Ruì-Tè-Nǔ-Tōu" },
+        { term: "rallentando", ipa: "/ral.lenˈtan.do/", def: "漸慢", lang: "Italian", en: "Gradually slower", canto: "Raa-Len-Taan-Do", mando: "Ruā-Lén-Tàn-Duō" },
+        { term: "ritardando", ipa: "/ri.tarˈdan.do/", def: "漸慢", lang: "Italian", en: "Gradually slower", canto: "Ri-Taa-Daan-Do", mando: "Ruì-Tà-Dàn-Duō" },
+        { term: "a tempo", ipa: "/a ˈtɛm.po/", def: "回原速", lang: "Italian", en: "Back to original speed", canto: "Ah Tem-Po", mando: "Ā Tēm-Pōu" },
+        { term: "come prima", ipa: "/ˈko.me ˈpri.ma/", def: "如初", lang: "Italian", en: "As before", canto: "Ko-May Pri-Ma", mando: "Kōu-Mēi Pǔ-Lì-Mǎ" },
+        { term: "alla breve", ipa: "/ˈal.la ˈbrɛ.ve/", def: "二二拍", lang: "Italian", en: "Cut common time", canto: "Ah-La Bre-Ve", mando: "Ā-Lā Bu-Réi-Vēi" },
+        { term: "alla marcia", ipa: "/ˈal.la ˈmar.tʃa/", def: "進行曲風格", lang: "Italian", en: "In the style of a march", canto: "Ah-La Maa-Cha", mando: "Ā-Lā Mǎ-Qià" },
+        { term: "grazioso", ipa: "/ɡratˈtsjo.zo/", def: "優雅地", lang: "Italian", en: "Graceful", canto: "Graat-Zi-O-So", mando: "Gé-Lā-Qì-Ōu-Suō" },
+        { term: "allegretto", ipa: "/al.leˈɡret.to/", def: "小快板", lang: "Italian", en: "Fairly fast", canto: "Ah-Le-Gret-Toe", mando: "Ā-Léi-Guěi-Tōu" },
+        { term: "allegro", ipa: "/alˈle.ɡro/", def: "快板", lang: "Italian", en: "Fast, lively", canto: "Ah-Le-Gro", mando: "Ā-Léi-Guō" },
+        { term: "più mosso", ipa: "/pju ˈmɔs.so/", def: "稍快", lang: "Italian", en: "More movement", canto: "Pew Mos-So", mando: "Pi-Yōu Mó-Suǒ" },
+        { term: "animato", ipa: "/a.niˈma.to/", def: "生動地", lang: "Italian", en: "Animated", canto: "Ah-Ni-Maa-Toe", mando: "Ā-Ní-Mǎ-Tōu" },
+        { term: "vivace", ipa: "/viˈva.tʃe/", def: "甚快 / 充滿活力", lang: "Italian", en: "Lively, quick", canto: "Vi-Vaa-Chi", mando: "Vī-Vā-Qiè" },
+        { term: "vivo", ipa: "/ˈvi.vo/", def: "活潑地", lang: "Italian", en: "Lively", canto: "Vi-Vo", mando: "Vī-Vōu" },
+        { term: "stringendo", ipa: "/strinˈdʒɛn.do/", def: "加緊 (漸快)", lang: "Italian", en: "Pressing on", canto: "Strin-Jen-Do", mando: "Si-Tè-Lín-Jiān-Duō" },
+        { term: "vite", ipa: "/vit/", def: "快速地", lang: "French", en: "Fast", canto: "Veet", mando: "Vì-Tè" },
+        { term: "schnell", ipa: "/ʃnɛl/", def: "快速地", lang: "German", en: "Fast", canto: "Sh-Nel", mando: "Shī-Nài-Er" },
+        { term: "presto", ipa: "/ˈprɛs.to/", def: "急板", lang: "Italian", en: "Very fast", canto: "Pres-Toe", mando: "Pǔ-Ruēi-Sī-Tōu" },
+        { term: "prestissimo", ipa: "/presˈtis.si.mo/", def: "最急板", lang: "Italian", en: "As fast as possible", canto: "Pres-Tis-Si-Mo", mando: "Pǔ-Ruēi-Sī-Tí-Sī-Mó" },
+        { term: "accelerando", ipa: "/at.tʃe.leˈran.do/", def: "漸快", lang: "Italian", en: "Gradually faster", canto: "Ah-Che-Le-Raan-Do", mando: "Ā-Qiè-Léi-Ruǎn-Duō" },
         
-        // --- Navigation / Structure ---
-        { term: "da capo", ipa: "/da ˈka.po/", def: "從頭再奏 (縮寫 D.C.)", lang: "Italian", en: "From the beginning", canto: "Cung Tau Zau", mando: "Cóng Tóu Zòu" },
-        { term: "fine", ipa: "/ˈfi.ne/", def: "結束", lang: "Italian", en: "The end", canto: "Git Cuk", mando: "Jié Shù" },
-        { term: "dal segno", ipa: "/dal ˈse.ɲo/", def: "從記號處再奏 (縮寫 D.S.)", lang: "Italian", en: "From the sign", canto: "Cung Gei Hou", mando: "Cóng Jì Hào" },
-        { term: "attacca", ipa: "/atˈtak.ka/", def: "緊接下段", lang: "Italian", en: "Go straight on", canto: "Gan Zip", mando: "Jǐn Jiē" },
+        // --- Navigation ---
+        { term: "da capo", ipa: "/da ˈka.po/", def: "從頭再奏", lang: "Italian", en: "From the beginning", canto: "Daa Ka-Po", mando: "Dá Kǎ-Pōu" },
+        { term: "fine", ipa: "/ˈfi.ne/", def: "結束", lang: "Italian", en: "The end", canto: "Fi-Nay", mando: "Fēi-Néi" },
+        { term: "dal segno", ipa: "/dal ˈse.ɲo/", def: "從記號處再奏", lang: "Italian", en: "From the sign", canto: "Daal Sen-Yo", mando: "Dál Sēn-Yōu" },
+        { term: "attacca", ipa: "/atˈtak.ka/", def: "緊接下段", lang: "Italian", en: "Go straight on", canto: "Ah-Taak-Ka", mando: "Ā-Tǎ-Kǎ" },
         
-        // --- Articulation / Style ---
-        { term: "legato", ipa: "/leˈɡa.to/", def: "圓滑奏 (連奏)", lang: "Italian", en: "Smoothly", canto: "Jyun Waat Zau", mando: "Yuán Huá Zòu" },
-        { term: "staccato", ipa: "/stakˈka.to/", def: "斷奏 (縮寫 stacc.)", lang: "Italian", en: "Detached", canto: "Dyun Zau", mando: "Duàn Zòu" },
-        { term: "leggiero", ipa: "/ledˈdʒɛ.ro/", def: "輕巧地", lang: "Italian", en: "Lightly", canto: "Hing Haau", mando: "Qīng Qiǎo" },
-        { term: "marcato", ipa: "/marˈka.to/", def: "加強音 (標示清晰)", lang: "Italian", en: "Marked, accented", canto: "Gaa Koeng Jam", mando: "Jiā Qiáng Yīn" },
-        { term: "prima", ipa: "/ˈpri.ma/", def: "第一 (次/部)", lang: "Italian", en: "First", canto: "Dai Jat", mando: "Dì Yī" },
-        { term: "simile", ipa: "/ˈsi.mi.le/", def: "同前 (同樣方式)", lang: "Italian", en: "In the same way", canto: "Tung Cin", mando: "Tóng Qián" },
-        { term: "ad libitum", ipa: "/ad ˈli.bi.tum/", def: "隨意地 (速度/風格自由)", lang: "Latin", en: "At choice/liberty", canto: "Ceoi Ji", mando: "Suí Yì" },
+        // --- Style ---
+        { term: "legato", ipa: "/leˈɡa.to/", def: "圓滑奏", lang: "Italian", en: "Smoothly", canto: "Le-Gaa-Toe", mando: "Léi-Gā-Tōu" },
+        { term: "staccato", ipa: "/stakˈka.to/", def: "斷奏", lang: "Italian", en: "Detached", canto: "Sta-Kaa-Toe", mando: "Sī-Tǎ-Kǎ-Tōu" },
+        { term: "leggiero", ipa: "/ledˈdʒɛ.ro/", def: "輕巧地", lang: "Italian", en: "Lightly", canto: "Le-Jee-E-Ro", mando: "Léi-Jié-Luō" },
+        { term: "marcato", ipa: "/marˈka.to/", def: "加強音", lang: "Italian", en: "Marked", canto: "Maa-Kaa-Toe", mando: "Mǎ-Kǎ-Tōu" },
+        { term: "prima", ipa: "/ˈpri.ma/", def: "第一", lang: "Italian", en: "First", canto: "Pri-Ma", mando: "Pǔ-Lì-Mǎ" },
+        { term: "simile", ipa: "/ˈsi.mi.le/", def: "同前", lang: "Italian", en: "In the same way", canto: "Si-Mi-Lay", mando: "Sī-Mǐ-Léi" },
+        { term: "ad libitum", ipa: "/ad ˈli.bi.tum/", def: "隨意地", lang: "Latin", en: "At choice", canto: "Ad Li-Bi-Tum", mando: "Ā-Dé Lì-Bǐ-Tǔ-Mǔ" },
         
         // --- Dynamics ---
-        { term: "crescendo", ipa: "/kreˈʃɛn.do/", def: "漸強 (縮寫 cresc.)", lang: "Italian", en: "Gradually louder", canto: "Zim Koeng", mando: "Jiàn Qiáng" },
-        { term: "decrescendo", ipa: "/de.kreˈʃɛn.do/", def: "漸弱 (縮寫 decresc.)", lang: "Italian", en: "Gradually softer", canto: "Zim Joek", mando: "Jiàn Ruò" },
-        { term: "diminuendo", ipa: "/di.mi.nuˈɛn.do/", def: "漸弱 (縮寫 dim.)", lang: "Italian", en: "Gradually softer", canto: "Zim Joek", mando: "Jiàn Ruò" },
-        { term: "forte", ipa: "/ˈfɔr.te/", def: "強 (縮寫 f)", lang: "Italian", en: "Loud", canto: "Koeng", mando: "Qiáng" },
-        { term: "fortissimo", ipa: "/forˈtis.si.mo/", def: "甚強 (縮寫 ff)", lang: "Italian", en: "Very loud", canto: "Sam Koeng", mando: "Shèn Qiáng" },
-        { term: "mezzo piano", ipa: "/ˈmɛd.dzo ˈpja.no/", def: "中弱 (縮寫 mp)", lang: "Italian", en: "Moderately soft", canto: "Zung Joek", mando: "Zhōng Ruò" },
-        { term: "piano", ipa: "/ˈpja.no/", def: "弱 (縮寫 p)", lang: "Italian", en: "Soft", canto: "Joek", mando: "Ruò" },
-        { term: "pianissimo", ipa: "/pjaˈnis.si.mo/", def: "甚弱 (縮寫 pp)", lang: "Italian", en: "Very soft", canto: "Sam Joek", mando: "Shèn Ruò" },
-        { term: "fortepiano", ipa: "/ˈfɔr.te ˈpja.no/", def: "強後突弱 (縮寫 fp)", lang: "Italian", en: "Loud then immediately soft", canto: "Koeng Hau Dat Joek", mando: "Qiáng Hòu Tū Ruò" },
-        { term: "sforzando", ipa: "/sforˈtsan.do/", def: "突強 (強調單音 sfz)", lang: "Italian", en: "Forced, accented", canto: "Dat Koeng", mando: "Tū Qiáng" },
-        { term: "rinforzando", ipa: "/rin.forˈtsan.do/", def: "加強 (縮寫 rf/rfz)", lang: "Italian", en: "Reinforcing", canto: "Gaa Koeng", mando: "Jiā Qiáng" },
+        { term: "crescendo", ipa: "/kreˈʃɛn.do/", def: "漸強", lang: "Italian", en: "Gradually louder", canto: "Kre-Shen-Do", mando: "Kě-Ruēi-Xuān-Duō" },
+        { term: "decrescendo", ipa: "/de.kreˈʃɛn.do/", def: "漸弱", lang: "Italian", en: "Gradually softer", canto: "Day-Kre-Shen-Do", mando: "Dēi-Kě-Ruēi-Xuān-Duō" },
+        { term: "diminuendo", ipa: "/di.mi.nuˈɛn.do/", def: "漸弱", lang: "Italian", en: "Gradually softer", canto: "Di-Min-Yu-En-Do", mando: "Dì-Mǐ-Niǔ-Wēn-Duō" },
+        { term: "forte", ipa: "/ˈfɔr.te/", def: "強", lang: "Italian", en: "Loud", canto: "For-Tay", mando: "Fó-Tēi" },
+        { term: "fortissimo", ipa: "/forˈtis.si.mo/", def: "甚強", lang: "Italian", en: "Very loud", canto: "For-Tis-Si-Mo", mando: "Fó-Tí-Sī-Mó" },
+        { term: "mezzo piano", ipa: "/ˈmɛd.dzo ˈpja.no/", def: "中弱", lang: "Italian", en: "Moderately soft", canto: "Met-So Pi-Aa-No", mando: "Mēi-Zuǒ Pī-A-Nuò" },
+        { term: "piano", ipa: "/ˈpja.no/", def: "弱", lang: "Italian", en: "Soft", canto: "Pi-Aa-No", mando: "Pī-A-Nuò" },
+        { term: "pianissimo", ipa: "/pjaˈnis.si.mo/", def: "甚弱", lang: "Italian", en: "Very soft", canto: "Pi-Aa-Nis-Si-Mo", mando: "Pī-A-Ní-Sī-Mó" },
+        { term: "fortepiano", ipa: "/ˈfɔr.te ˈpja.no/", def: "強後突弱", lang: "Italian", en: "Loud then soft", canto: "For-Tay Pi-Aa-No", mando: "Fó-Tēi Pī-A-Nuò" },
+        { term: "sforzando", ipa: "/sforˈtsan.do/", def: "突強", lang: "Italian", en: "Forced", canto: "Sfor-Tsaan-Do", mando: "Sī-Fó-Cǎn-Duō" },
+        { term: "rinforzando", ipa: "/rin.forˈtsan.do/", def: "加強", lang: "Italian", en: "Reinforcing", canto: "Rin-For-Tsaan-Do", mando: "Lín-Fó-Cǎn-Duō" },
         
-        // --- Mood / Character ---
-        { term: "cantabile", ipa: "/kanˈta.bi.le/", def: "如歌地", lang: "Italian", en: "Singing style", canto: "Jyu Go Dei", mando: "Rú Gē De" },
-        { term: "dolce", ipa: "/ˈdol.tʃe/", def: "甜美地、溫柔地", lang: "Italian", en: "Sweet, soft", canto: "Tim Mei", mando: "Tián Měi" },
-        { term: "espressivo", ipa: "/es.presˈsi.vo/", def: "富有表情地", lang: "Italian", en: "Expressive", canto: "Fu Jau Biu Cing", mando: "Fù Yǒu Biǎo Qíng" },
-        { term: "con forza", ipa: "/kon ˈfɔr.tsa/", def: "有力地", lang: "Italian", en: "With force", canto: "Jau Lik", mando: "Yǒu Lì" },
-        { term: "energico", ipa: "/eˈnɛr.dʒi.ko/", def: "精力充沛地", lang: "Italian", en: "Energetic", canto: "Zing Lik Cung Pui", mando: "Jīng Lì Chōng Pèi" },
-        { term: "giocoso", ipa: "/dʒoˈko.zo/", def: "詼諧地、快樂地", lang: "Italian", en: "Playful, merry", canto: "Fui Haai", mando: "Huī Xié" },
-        { term: "scherzando", ipa: "/skerˈtsan.do/", def: "戲謔地、開玩笑地", lang: "Italian", en: "Playful, joking", canto: "Hei Joek", mando: "Xì Nuè" },
-        { term: "semplice", ipa: "/ˈsɛm.pli.tʃe/", def: "單純地、樸素地", lang: "Italian", en: "Simple, plain", canto: "Daan Seon", mando: "Dān Chún" },
-        { term: "sostenuto", ipa: "/so.steˈnu.to/", def: "持續地 (音要拖長)", lang: "Italian", en: "Sustained", canto: "Ci Zuk", mando: "Chí Xù" },
-        { term: "subito", ipa: "/ˈsu.bi.to/", def: "突然地", lang: "Italian", en: "Suddenly", canto: "Dat Yin", mando: "Tū Rán" },
-        { term: "tranquillo", ipa: "/tranˈkwil.lo/", def: "平靜地", lang: "Italian", en: "Calm", canto: "Ping Zing", mando: "Píng Jìng" },
-        { term: "triste", ipa: "/ˈtri.ste/", def: "悲傷地", lang: "Italian", en: "Sad", canto: "Bei Soeng", mando: "Bēi Shāng" },
-        { term: "affettuoso", ipa: "/af.fetˈtwo.zo/", def: "深情地", lang: "Italian", en: "Affectionate", canto: "Sam Cing", mando: "Shēn Qíng" },
-        { term: "amabile", ipa: "/aˈma.bi.le/", def: "可愛地、親切地", lang: "Italian", en: "Amiable", canto: "Ho Oi", mando: "Kě Ài" },
-        { term: "appassionato", ipa: "/ap.pas.sjoˈna.to/", def: "熱情地", lang: "Italian", en: "Passionate", canto: "Jit Cing", mando: "Rè Qíng" },
-        { term: "con brio", ipa: "/kon ˈbri.o/", def: "有活力地、輝煌地", lang: "Italian", en: "With vigour", canto: "Jau Wut Lik", mando: "Yǒu Huó Lì" },
-        { term: "deciso", ipa: "/deˈtʃi.zo/", def: "堅定地", lang: "Italian", en: "With determination", canto: "Gin Ding", mando: "Jiān Dìng" },
-        { term: "mesto", ipa: "/ˈmɛ.sto/", def: "憂鬱地、悲傷地", lang: "Italian", en: "Sad, mournful", canto: "Jau Wat", mando: "Yōu Yù" },
-        { term: "misterioso", ipa: "/mi.steˈrjo.zo/", def: "神秘地", lang: "Italian", en: "Mysterious", canto: "San Bei", mando: "Shén Mì" },
-        { term: "animé", ipa: "/a.ni.me/", def: "活躍的", lang: "French", en: "Animated", canto: "Wut Joek", mando: "Huó Yuè" },
-        { term: "douce", ipa: "/dus/", def: "甜美的、溫柔的", lang: "French", en: "Sweet", canto: "Tim Mei", mando: "Tián Měi" },
-        { term: "lebhaft", ipa: "/ˈleːphaft/", def: "活潑的", lang: "German", en: "Lively", canto: "Wut Put", mando: "Huó Pō" },
-        { term: "ruhig", ipa: "/ˈruːɪç/", def: "平靜的", lang: "German", en: "Peaceful", canto: "Ping Zing", mando: "Píng Jìng" },
-        { term: "traurig", ipa: "/ˈtʁaʊ̯ʁɪç/", def: "悲傷的", lang: "German", en: "Sad", canto: "Bei Soeng", mando: "Bēi Shāng" },
-        { term: "morendo", ipa: "/moˈrɛn.do/", def: "漸弱消失 (垂死狀)", lang: "Italian", en: "Dying away", canto: "Zim Joek Siu Sat", mando: "Jiàn Ruò Xiāo Shī" },
-        { term: "perdendosi", ipa: "/perˈdɛn.do.si/", def: "逐漸消失", lang: "Italian", en: "Dying away", canto: "Zuk Zim Siu Sat", mando: "Zhú Jiàn Xiāo Shī" },
-        { term: "smorzando", ipa: "/zmorˈtsan.do/", def: "漸慢且漸弱 (熄滅)", lang: "Italian", en: "Dying away", canto: "Zim Maan Zim Joek", mando: "Jiàn Màn Jiàn Ruò" },
-        { term: "sotto voce", ipa: "/ˈsot.to ˈvo.tʃe/", def: "低聲地 (半聲)", lang: "Italian", en: "In an undertone", canto: "Dai Sing", mando: "Dī Shēng" },
+        // --- Mood ---
+        { term: "cantabile", ipa: "/kanˈta.bi.le/", def: "如歌地", lang: "Italian", en: "Singing style", canto: "Kaan-Taa-Bi-Lay", mando: "Kān-Tǎ-Bǐ-Léi" },
+        { term: "dolce", ipa: "/ˈdol.tʃe/", def: "甜美地", lang: "Italian", en: "Sweet", canto: "Dol-Chay", mando: "Duō-Qiè" },
+        { term: "espressivo", ipa: "/es.presˈsi.vo/", def: "富有表情地", lang: "Italian", en: "Expressive", canto: "Es-Pres-Si-Vo", mando: "Ai-Sī-Pǔ-Ruēi-Sī-Vōu" },
+        { term: "con forza", ipa: "/kon ˈfɔr.tsa/", def: "有力地", lang: "Italian", en: "With force", canto: "Kon For-Tsa", mando: "Kōng Fó-Cā" },
+        { term: "energico", ipa: "/eˈnɛr.dʒi.ko/", def: "精力充沛地", lang: "Italian", en: "Energetic", canto: "En-Er-Ji-Ko", mando: "Ai-Nài-Jí-Kōu" },
+        { term: "giocoso", ipa: "/dʒoˈko.zo/", def: "詼諧地", lang: "Italian", en: "Playful", canto: "Jo-Ko-So", mando: "Jiào-Kōu-Suō" },
+        { term: "scherzando", ipa: "/skerˈtsan.do/", def: "戲謔地", lang: "Italian", en: "Playful, joking", canto: "Sker-Tsaan-Do", mando: "Sī-Kě-Cǎn-Duō" },
+        { term: "semplice", ipa: "/ˈsɛm.pli.tʃe/", def: "單純地", lang: "Italian", en: "Simple", canto: "Sem-Pli-Chay", mando: "Sēn-Pǔ-Lǐ-Qiè" },
+        { term: "sostenuto", ipa: "/so.steˈnu.to/", def: "持續地", lang: "Italian", en: "Sustained", canto: "Sos-Ten-Nu-Toe", mando: "Suǒ-Sī-Tè-Nǔ-Tōu" },
+        { term: "subito", ipa: "/ˈsu.bi.to/", def: "突然地", lang: "Italian", en: "Suddenly", canto: "Su-Bi-Toe", mando: "Sū-Bǐ-Tōu" },
+        { term: "tranquillo", ipa: "/tranˈkwil.lo/", def: "平靜地", lang: "Italian", en: "Calm", canto: "Traan-Kwil-Lo", mando: "Tè-Luǎn-Kuī-Luō" },
+        { term: "triste", ipa: "/ˈtri.ste/", def: "悲傷地", lang: "Italian", en: "Sad", canto: "Tris-Tay", mando: "Tè-Ruì-Sī-Tēi" },
+        { term: "affettuoso", ipa: "/af.fetˈtwo.zo/", def: "深情地", lang: "Italian", en: "Affectionate", canto: "Ah-Fet-Two-So", mando: "Ā-Fēi-Tuō-Suō" },
+        { term: "amabile", ipa: "/aˈma.bi.le/", def: "可愛地", lang: "Italian", en: "Amiable", canto: "Ah-Maa-Bi-Lay", mando: "Ā-Mǎ-Bǐ-Léi" },
+        { term: "appassionato", ipa: "/ap.pas.sjoˈna.to/", def: "熱情地", lang: "Italian", en: "Passionate", canto: "Ah-Pas-Sio-Naa-Toe", mando: "Ā-Pà-Sio-Nǎ-Tōu" },
+        { term: "con brio", ipa: "/kon ˈbri.o/", def: "有活力地", lang: "Italian", en: "With vigour", canto: "Kon Bri-O", mando: "Kōng Bù-Lǐ-Ōu" },
+        { term: "deciso", ipa: "/deˈtʃi.zo/", def: "堅定地", lang: "Italian", en: "Determined", canto: "De-Chi-So", mando: "Dēi-Qí-Suō" },
+        { term: "mesto", ipa: "/ˈmɛ.sto/", def: "憂鬱地", lang: "Italian", en: "Sad", canto: "Mes-Toe", mando: "Mēi-Sī-Tōu" },
+        { term: "misterioso", ipa: "/mi.steˈrjo.zo/", def: "神秘地", lang: "Italian", en: "Mysterious", canto: "Mis-Tay-Rio-So", mando: "Mǐ-Sī-Tè-Lió-Suō" },
+        { term: "animé", ipa: "/a.ni.me/", def: "活躍的", lang: "French", en: "Animated", canto: "Ah-Ni-May", mando: "Ā-Ní-Mēi" },
+        { term: "douce", ipa: "/dus/", def: "甜美的", lang: "French", en: "Sweet", canto: "Doos", mando: "Dù-Sī" },
+        { term: "lebhaft", ipa: "/ˈleːphaft/", def: "活潑的", lang: "German", en: "Lively", canto: "Layp-Haft", mando: "Léi-Pǔ-Hā-Fū-Tè" },
+        { term: "ruhig", ipa: "/ˈruːɪç/", def: "平靜的", lang: "German", en: "Peaceful", canto: "Ru-Hick", mando: "Lù-Xī-Kè" },
+        { term: "traurig", ipa: "/ˈtʁaʊ̯ʁɪç/", def: "悲傷的", lang: "German", en: "Sad", canto: "Trao-Rick", mando: "Tè-Láo-Lǐ-Kè" },
+        { term: "morendo", ipa: "/moˈrɛn.do/", def: "漸弱消失", lang: "Italian", en: "Dying away", canto: "Mo-Ren-Do", mando: "Mó-Ruēi-En-Duō" },
+        { term: "perdendosi", ipa: "/perˈdɛn.do.si/", def: "逐漸消失", lang: "Italian", en: "Dying away", canto: "Per-Den-Do-Si", mando: "Péi-Děn-Duō-Sī" },
+        { term: "smorzando", ipa: "/zmorˈtsan.do/", def: "漸慢且漸弱", lang: "Italian", en: "Dying away", canto: "Smor-Tsaan-Do", mando: "Sī-Mó-Cǎn-Duō" },
+        { term: "sotto voce", ipa: "/ˈsot.to ˈvo.tʃe/", def: "低聲地", lang: "Italian", en: "Undertone", canto: "Sot-To Vo-Chay", mando: "Suǒ-Tōu Vōu-Qiè" },
         
-        // --- Conjunctions / Modifiers ---
-        { term: "con", ipa: "/kon/", def: "用、伴隨著", lang: "Italian", en: "With", canto: "Jung", mando: "Yòng" },
-        { term: "ma", ipa: "/ma/", def: "但是", lang: "Italian", en: "But", canto: "Daan Si", mando: "Dàn Shì" },
-        { term: "meno", ipa: "/ˈme.no/", def: "較少", lang: "Italian", en: "Less", canto: "Gaau Siu", mando: "Jiào Shǎo" },
-        { term: "molto", ipa: "/ˈmol.to/", def: "很、甚", lang: "Italian", en: "Very", canto: "Han", mando: "Hěn" },
-        { term: "non", ipa: "/non/", def: "不", lang: "Italian", en: "Not", canto: "Bat", mando: "Bù" },
-        { term: "troppo", ipa: "/ˈtrɔp.po/", def: "太、過多", lang: "Italian", en: "Too much", canto: "Taai", mando: "Tài" },
-        { term: "più", ipa: "/pju/", def: "更多", lang: "Italian", en: "More", canto: "Gang Do", mando: "Gèng Duō" },
-        { term: "poco", ipa: "/ˈpɔ.ko/", def: "一點點", lang: "Italian", en: "A little", canto: "Jat Dim Dim", mando: "Yī Diǎn Diǎn" },
-        { term: "assai", ipa: "/asˈsai/", def: "非常 (有時指適度)", lang: "Italian", en: "Very", canto: "Fei Soeng", mando: "Fēi Cháng" },
-        { term: "quasi", ipa: "/ˈkwa.zi/", def: "幾乎、類似", lang: "Italian", en: "As if", canto: "Gei Fu", mando: "Jī Hū" },
-        { term: "sempre", ipa: "/ˈsɛm.pre/", def: "始終、一直", lang: "Italian", en: "Always", canto: "Ci Zung", mando: "Shǐ Zhōng" },
-        { term: "senza", ipa: "/ˈsɛn.tsa/", def: "沒有", lang: "Italian", en: "Without", canto: "Mut Jau", mando: "Méi Yǒu" },
-        { term: "ben", ipa: "/bɛn/", def: "充分地、很好地", lang: "Italian", en: "Well", canto: "Cung Fan", mando: "Chōng Fèn" },
+        // --- Conjunctions ---
+        { term: "con", ipa: "/kon/", def: "用、伴隨著", lang: "Italian", en: "With", canto: "Kon", mando: "Kōng" },
+        { term: "ma", ipa: "/ma/", def: "但是", lang: "Italian", en: "But", canto: "Maa", mando: "Mǎ" },
+        { term: "meno", ipa: "/ˈme.no/", def: "較少", lang: "Italian", en: "Less", canto: "May-No", mando: "Mēi-Nuò" },
+        { term: "molto", ipa: "/ˈmol.to/", def: "很、甚", lang: "Italian", en: "Very", canto: "Mol-Toe", mando: "Mó-Er-Tōu" },
+        { term: "non", ipa: "/non/", def: "不", lang: "Italian", en: "Not", canto: "Non", mando: "Nòng" },
+        { term: "troppo", ipa: "/ˈtrɔp.po/", def: "太、過多", lang: "Italian", en: "Too much", canto: "Trop-Po", mando: "Tuō-Pōu" },
+        { term: "più", ipa: "/pju/", def: "更多", lang: "Italian", en: "More", canto: "Pew", mando: "Pi-Yōu" },
+        { term: "poco", ipa: "/ˈpɔ.ko/", def: "一點點", lang: "Italian", en: "A little", canto: "Po-Ko", mando: "Pōu-Kōu" },
+        { term: "assai", ipa: "/asˈsai/", def: "非常", lang: "Italian", en: "Very", canto: "As-Sai", mando: "Ā-Sāi" },
+        { term: "quasi", ipa: "/ˈkwa.zi/", def: "幾乎", lang: "Italian", en: "As if", canto: "Kwaa-Zi", mando: "Kuā-Zī" },
+        { term: "sempre", ipa: "/ˈsɛm.pre/", def: "始終", lang: "Italian", en: "Always", canto: "Sem-Pray", mando: "Sēn-Pǔ-Réi" },
+        { term: "senza", ipa: "/ˈsɛn.tsa/", def: "沒有", lang: "Italian", en: "Without", canto: "Sen-Tsa", mando: "Sēn-Cā" },
+        { term: "ben", ipa: "/bɛn/", def: "充分地", lang: "Italian", en: "Well", canto: "Ben", mando: "Bēn" },
         
-        // --- Additional Terms from list ---
-        { term: "grave", ipa: "/ˈɡra.ve/", def: "莊板 (極緩慢莊嚴)", lang: "Italian", en: "Very slow, solemn", canto: "Zong Baan", mando: "Zhuāng Bǎn" },
-        { term: "allargando", ipa: "/al.larˈɡan.do/", def: "漸寬廣 (漸慢且強)", lang: "Italian", en: "Broadening", canto: "Zim Fun Gwong", mando: "Jiàn Kuān Guǎng" },
-        { term: "con moto", ipa: "/kon ˈmɔ.to/", def: "有動感地", lang: "Italian", en: "With movement", canto: "Jau Dung Gam", mando: "Yǒu Dòng Gǎn" },
-        { term: "agitato", ipa: "/a.dʒiˈta.to/", def: "激動地", lang: "Italian", en: "Agitated", canto: "Gik Dung", mando: "Jī Dòng" },
-        { term: "maestoso", ipa: "/ma.eˈsto.zo/", def: "莊嚴地", lang: "Italian", en: "Majestic", canto: "Zong Jim", mando: "Zhuāng Yán" },
-        { term: "pesante", ipa: "/peˈzan.te/", def: "沈重地", lang: "Italian", en: "Heavy", canto: "Cam Zung", mando: "Chén Zhòng" },
-        { term: "risoluto", ipa: "/ri.zoˈlu.to/", def: "果斷地", lang: "Italian", en: "Bold, strong", canto: "Gwo Dyun", mando: "Guǒ Duàn" },
-        { term: "ritmico", ipa: "/ˈrit.mi.ko/", def: "有節奏地", lang: "Italian", en: "Rhythmic", canto: "Jau Zit Zau", mando: "Yǒu Jié Zòu" },
-        { term: "cantando", ipa: "/kanˈtan.do/", def: "歌唱般地", lang: "Italian", en: "Singing", canto: "Go Coeng Bun", mando: "Gē Chàng Bān" },
-        { term: "con dolore", ipa: "/kon doˈlo.re/", def: "悲痛地", lang: "Italian", en: "With grief", canto: "Bei Tung", mando: "Bēi Tòng" },
-        { term: "con spirito", ipa: "/kon ˈspi.ri.to/", def: "有精神地", lang: "Italian", en: "With spirit", canto: "Jau Zing San", mando: "Yǒu Jīng Shén" },
-        { term: "doloroso", ipa: "/do.loˈro.zo/", def: "痛苦地", lang: "Italian", en: "Sorrowful", canto: "Tung Fu", mando: "Tòng Kǔ" },
-        { term: "largamente", ipa: "/lar.ɡaˈmen.te/", def: "寬廣地", lang: "Italian", en: "Broadly", canto: "Fun Gwong", mando: "Kuān Guǎng" },
-        { term: "sonoro", ipa: "/soˈnɔ.ro/", def: "響亮地", lang: "Italian", en: "Resonant", canto: "Hoeng Loeng", mando: "Xiǎng Liàng" },
-        { term: "a niente", ipa: "/a ˈnjɛn.te/", def: "漸弱至無聲", lang: "Italian", en: "To nothing", canto: "Zi Mou Sing", mando: "Zhì Wú Shēng" }
+        // --- Others ---
+        { term: "grave", ipa: "/ˈɡra.ve/", def: "莊板", lang: "Italian", en: "Very slow", canto: "Graa-Vay", mando: "Gé-Lā-Vēi" },
+        { term: "allargando", ipa: "/al.larˈɡan.do/", def: "漸寬廣", lang: "Italian", en: "Broadening", canto: "Ah-Lar-Gaan-Do", mando: "Ā-Lā-Gǎn-Duō" },
+        { term: "con moto", ipa: "/kon ˈmɔ.to/", def: "有動感地", lang: "Italian", en: "With movement", canto: "Kon Mo-Toe", mando: "Kōng Mó-Tōu" },
+        { term: "agitato", ipa: "/a.dʒiˈta.to/", def: "激動地", lang: "Italian", en: "Agitated", canto: "Ah-Ji-Taa-Toe", mando: "Ā-Jí-Tǎ-Tōu" },
+        { term: "maestoso", ipa: "/ma.eˈsto.zo/", def: "莊嚴地", lang: "Italian", en: "Majestic", canto: "Mai-Sto-So", mando: "Mài-Sī-Tuō-Suō" },
+        { term: "pesante", ipa: "/peˈzan.te/", def: "沈重地", lang: "Italian", en: "Heavy", canto: "Pe-Zaan-Tay", mando: "Pēi-Zǎn-Tēi" },
+        { term: "risoluto", ipa: "/ri.zoˈlu.to/", def: "果斷地", lang: "Italian", en: "Bold", canto: "Ri-Zo-Lu-Toe", mando: "Ruì-Zuǒ-Lǔ-Tōu" },
+        { term: "ritmico", ipa: "/ˈrit.mi.ko/", def: "有節奏地", lang: "Italian", en: "Rhythmic", canto: "Rit-Mi-Ko", mando: "Ruì-Tè-Mǐ-Kōu" },
+        { term: "cantando", ipa: "/kanˈtan.do/", def: "歌唱般地", lang: "Italian", en: "Singing", canto: "Kaan-Taan-Do", mando: "Kān-Tǎn-Duō" },
+        { term: "con dolore", ipa: "/kon doˈlo.re/", def: "悲痛地", lang: "Italian", en: "With grief", canto: "Kon Do-Lo-Ray", mando: "Kōng Duō-Luō-Réi" },
+        { term: "con spirito", ipa: "/kon ˈspi.ri.to/", def: "有精神地", lang: "Italian", en: "With spirit", canto: "Kon Spi-Ri-Toe", mando: "Kōng Sī-Pī-Lǐ-Tōu" },
+        { term: "doloroso", ipa: "/do.loˈro.zo/", def: "痛苦地", lang: "Italian", en: "Sorrowful", canto: "Do-Lo-Ro-So", mando: "Duō-Luō-Ruō-Suō" },
+        { term: "largamente", ipa: "/lar.ɡaˈmen.te/", def: "寬廣地", lang: "Italian", en: "Broadly", canto: "Lar-Gaa-Men-Tay", mando: "Lā-Gǎ-Mēn-Tēi" },
+        { term: "sonoro", ipa: "/soˈnɔ.ro/", def: "響亮地", lang: "Italian", en: "Resonant", canto: "So-No-Ro", mando: "Suǒ-Nuò-Luō" },
+        { term: "a niente", ipa: "/a ˈnjɛn.te/", def: "漸弱至無聲", lang: "Italian", en: "To nothing", canto: "Ah Nyen-Tay", mando: "Ā Ni-Yěn-Tēi" }
     ];
 
     let currentMode = 'zh'; 
@@ -413,14 +407,9 @@
         return options;
     }
 
-    // --- Audio Logic ---
     function playAudio() {
         if (!currentQuestion) return;
-
-        // Use the main term for TTS (Google TTS works best with just the word)
-        // Clean up brackets for TTS (e.g., "ritenuto" instead of "ritenuto (rit.)")
         let textToSpeak = currentQuestion.term;
-        
         const langName = currentQuestion.lang; 
         const langCode = langMap[langName] || "en-US"; 
 
@@ -442,26 +431,20 @@
         questionCount++;
         document.getElementById('progress-display').textContent = `Q: ${questionCount}`;
         
-        // Reset UI
         document.getElementById('next-btn').classList.add('hidden');
         document.getElementById('feedback-area').className = 'feedback';
         document.getElementById('feedback-area').style.display = 'none';
         document.getElementById('pronunciation-box').classList.add('hidden');
         
-        // Select Question
         currentQuestion = getRandomItem(musicTerms);
         const options = generateOptions(currentQuestion);
 
-        // Render Question
-        // Use capitalization for the question display
         const displayTerm = currentQuestion.term.charAt(0).toUpperCase() + currentQuestion.term.slice(1);
         document.getElementById('question-term').textContent = displayTerm;
         
-        // Render IPA if available
         const ipaEl = document.getElementById('question-ipa');
         ipaEl.textContent = currentQuestion.ipa ? `[ ${currentQuestion.ipa} ]` : '';
 
-        // Render Options
         const optionsContainer = document.getElementById('options-container');
         optionsContainer.innerHTML = '';
 
@@ -506,7 +489,6 @@
             feedbackArea.classList.add('success');
             feedbackTitle.textContent = "Correct! 答對了！";
             feedbackTitle.style.color = "#2ECC71";
-            // playAudio(); // Optional: Auto-play audio on correct answer
         } else {
             btnElement.classList.add('wrong');
             feedbackArea.classList.add('error');
@@ -520,7 +502,6 @@
             <div style="color:#777; font-size:0.9em;">English: ${currentQuestion.en}</div>
         `;
         
-        // Show Pronunciation Guide ONLY in Chinese Mode
         if(currentMode === 'zh') {
             const pBox = document.getElementById('pronunciation-box');
             const cText = document.getElementById('canto-text');
