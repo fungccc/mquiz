@@ -6,14 +6,39 @@
     <title>Music Terms Quiz</title>
     <style>
         :root {
+            /* 淺色模式變數 */
             --primary: #4A90E2;
+            --primary-hover: #357abd;
             --success: #2ECC71;
             --error: #E74C3C;
             --bg: #f5f7fa;
             --card: #ffffff;
             --text: #2c3e50;
+            --text-sec: #7f8c8d;
+            --border: #e0e0e0;
             --fab-color: #34495e;
             --review-color: #8e44ad;
+            --option-bg: #ffffff;
+            --option-hover: #f0f7ff;
+            --input-bg: #ffffff;
+        }
+
+        /* 深色模式變數 */
+        [data-theme="dark"] {
+            --primary: #5d9cec;
+            --primary-hover: #4a89dc;
+            --success: #27ae60;
+            --error: #c0392b;
+            --bg: #1a202c;
+            --card: #2d3748;
+            --text: #f7fafc;
+            --text-sec: #a0aec0;
+            --border: #4a5568;
+            --fab-color: #4a5568;
+            --review-color: #9b59b6;
+            --option-bg: #2d3748;
+            --option-hover: #4a5568;
+            --input-bg: #1a202c;
         }
 
         body {
@@ -24,28 +49,33 @@
             padding: 20px;
             padding-bottom: 80px;
             display: flex;
+            flex-direction: column; /* 強制垂直排列，避免左右並排 */
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .container {
             background: var(--card);
             border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             width: 100%;
             max-width: 600px;
             padding: 30px;
             text-align: center;
             position: relative;
             z-index: 1;
+            transition: background-color 0.3s;
         }
 
         h1 { margin-bottom: 10px; font-size: 28px; color: var(--primary); }
-        .subtitle { color: #7f8c8d; margin-bottom: 30px; font-size: 16px; }
+        h2 { color: var(--text); }
+        .subtitle { color: var(--text-sec); margin-bottom: 20px; font-size: 16px; }
         
-        .mode-select button, .option-btn, .next-btn {
+        /* 按鈕樣式 */
+        .btn {
             background: var(--primary);
             color: white;
             border: none;
@@ -53,370 +83,237 @@
             border-radius: 8px;
             font-size: 16px;
             cursor: pointer;
-            margin: 5px;
+            margin: 5px 0;
             transition: transform 0.1s, opacity 0.2s;
             width: 100%;
-            max-width: 300px;
+            display: block;
+            font-weight: bold;
         }
+        .btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-outline:hover { background: rgba(74, 144, 226, 0.1); }
 
-        .mode-select button:hover { transform: translateY(-2px); }
-        
         .option-btn {
-            background: white;
-            border: 2px solid #e0e0e0;
+            background: var(--option-bg);
+            border: 2px solid var(--border);
             color: var(--text);
             margin-bottom: 10px;
             text-align: left;
             display: flex;
             align-items: center;
             justify-content: space-between;
-        }
-
-        .option-btn:hover { border-color: var(--primary); background: #f0f7ff; }
-        .option-btn.correct { background: var(--success); color: white; border-color: var(--success); }
-        .option-btn.wrong { background: var(--error); color: white; border-color: var(--error); }
-
-        .quiz-area { display: none; }
-        
-        .term-container {
-            margin: 20px 0;
-        }
-
-        .term-display {
-            font-size: 32px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .term-ipa {
-            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 8px;
             font-size: 16px;
-            color: #7f8c8d;
-            font-family: "Lucida Sans Unicode", "Arial Unicode MS", sans-serif;
-            margin-top: 5px;
-            font-weight: normal;
-        }
-
-        .audio-btn {
-            background: none;
-            border: 2px solid #eee;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
             cursor: pointer;
             transition: all 0.2s;
-            flex-shrink: 0;
         }
-        .audio-btn:hover { background-color: #f0f0f0; transform: scale(1.1); }
-        .audio-btn:active { background-color: #e0e0e0; transform: scale(0.95); }
 
-        .feedback {
-            margin-top: 20px;
+        .option-btn:hover { border-color: var(--primary); background: var(--option-hover); }
+        .option-btn.correct { background: var(--success); color: white; border-color: var(--success); }
+        .option-btn.wrong { background: var(--error); color: white; border-color: var(--error); }
+        .option-btn:disabled { cursor: default; opacity: 0.7; }
+
+        /* 分類篩選區 */
+        .category-filter {
+            background: rgba(0,0,0,0.03);
+            border-radius: 10px;
             padding: 15px;
-            border-radius: 8px;
-            background: #f8f9fa;
-            display: none;
+            margin-bottom: 20px;
             text-align: left;
-            border-left: 5px solid #ccc;
+            border: 1px solid var(--border);
+        }
+        .filter-title { font-weight: bold; margin-bottom: 10px; display: block; color: var(--text); font-size: 0.9rem; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        .checkbox-label {
+            display: flex; align-items: center; gap: 5px; font-size: 0.9rem; cursor: pointer;
+            background: var(--card); padding: 5px 10px; border-radius: 20px; border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .checkbox-label input { accent-color: var(--primary); }
+
+        /* 設定列 */
+        .setting-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--card); border: 2px solid var(--border);
+            padding: 12px; border-radius: 8px; margin-bottom: 15px;
+            color: var(--text);
         }
 
-        .feedback.show { display: block; }
-        .feedback.success { border-left-color: var(--success); }
-        .feedback.error { border-left-color: var(--error); }
-
-        .pronunciation-guide {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #555;
-            background: #eee;
-            padding: 8px;
-            border-radius: 5px;
+        /* 頂部工具列 */
+        .game-top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; padding: 8px 15px;
+            background: rgba(0,0,0,0.05); border-radius: 10px;
         }
-        .pinyin-row { display: flex; gap: 10px; margin-bottom: 2px; }
-        .pinyin-label { font-weight: bold; color: #888; width: 65px; flex-shrink: 0; text-align: right; margin-right: 5px; }
-        .pinyin-text { font-family: monospace; font-size: 15px; color: #333; }
+        .timer-badge { font-weight: bold; font-family: monospace; font-size: 1.2rem; color: var(--primary); }
 
+        /* 夜間模式開關 */
+        .theme-toggle {
+            position: fixed; top: 20px; right: 20px;
+            background: none; border: none; font-size: 1.5rem; cursor: pointer;
+            color: var(--text); transition: transform 0.3s; z-index: 100;
+        }
+        .theme-toggle:hover { transform: rotate(20deg); }
+
+        /* 單字卡片 */
+        .term-container { margin: 20px 0; min-height: 100px; display: flex; flex-direction: column; justify-content: center; }
+        .term-display { font-size: 32px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; color: var(--text); }
+        .term-ipa { font-size: 16px; color: var(--text-sec); font-family: "Lucida Sans Unicode", sans-serif; margin-top: 5px; display: block; }
         
+        .hidden-term {
+            filter: blur(8px); user-select: none; opacity: 0.5; background: #ccc; color: transparent; border-radius: 5px; padding: 0 10px;
+        }
 
-        .hidden { display: none; }
+        /* 發音按鈕 (設定 order:-1 讓它排在左邊) */
+        .audio-btn {
+            background: none; border: 2px solid var(--border); color: var(--primary);
+            border-radius: 50%; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: all 0.2s;
+            order: -1; /* 關鍵：讓按鈕排在左邊 */
+        }
+        .audio-btn:hover { background-color: var(--option-hover); transform: scale(1.1); }
+
+        /* 進度條 */
+        .stats {
+            display: flex; justify-content: space-between; align-items: center; padding: 10px 15px;
+            background: rgba(0,0,0,0.05); border-radius: 12px; margin-bottom: 10px;
+        }
+        .score-display { font-weight: bold; color: var(--text); }
+        .progress-bar-wrapper { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 20px; }
+        .progress-bar-fill { height: 100%; transition: width 0.5s ease; background: var(--success); }
+
+        /* 反饋區域 */
+        .feedback {
+            margin-top: 20px; padding: 15px; border-radius: 8px; background: var(--option-bg); 
+            display: none; text-align: left; border-left: 5px solid #ccc; border: 1px solid var(--border); border-left-width: 5px;
+            color: var(--text);
+        }
+        .feedback.success { border-left-color: var(--success); background-color: rgba(46, 204, 113, 0.1); }
+        .feedback.error { border-left-color: var(--error); background-color: rgba(231, 76, 60, 0.1); }
+        
+        /* Toggle Switch */
+        .toggle-wrapper { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-sec); }
+        .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+        .hidden { display: none !important; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6);
+            z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            background: var(--card); width: 90%; max-width: 500px; border-radius: 12px; padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3); max-height: 80vh; display: flex; flex-direction: column;
+            color: var(--text);
+        }
+        
+        /* Footer 修復 */
+        .footer-tools {
+            position: fixed; bottom: 35px; left: 0; width: 100%; text-align: center;
+            display: flex; justify-content: center; gap: 15px; z-index: 50;
+            pointer-events: none; /* 讓點擊穿透 */
+        }
+        .tool-btn {
+            background: rgba(0,0,0,0.6); color: white; border: none; padding: 8px 15px;
+            border-radius: 20px; font-size: 12px; cursor: pointer; backdrop-filter: blur(4px);
+            pointer-events: auto; /* 恢復按鈕點擊 */
+            transition: background 0.2s;
+        }
+        .tool-btn:hover { background: rgba(0,0,0,0.8); }
 
         .footer-credit {
-            position: fixed;
-            bottom: 5px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            color: #d1d5db;
-            font-size: 11px;
-            z-index: 0; 
-            pointer-events: none;
-            font-family: sans-serif;
-            letter-spacing: 1px;
+            position: fixed; bottom: 10px; left: 0; width: 100%; text-align: center;
+            color: var(--text-sec);
+            font-size: 11px; z-index: 40; pointer-events: none;
+            font-family: sans-serif; letter-spacing: 1px; opacity: 0.7;
         }
 
-        /* FAB & Modal */
-        .fab-container {
-            position: fixed;
-            bottom: 30px;
-            right: 20px;
-            z-index: 100;
-        }
-
+        /* FAB 錯題按鈕 */
+        .fab-container { position: fixed; bottom: 80px; right: 20px; z-index: 100; }
         .fab-btn {
-            background-color: var(--fab-color);
-            color: white;
-            border: none;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            font-size: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s;
+            background-color: var(--fab-color); color: white; border: none; width: 56px; height: 56px;
+            border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 24px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: transform 0.2s;
         }
-        .fab-btn:hover { transform: scale(1.1); background-color: #2c3e50; }
-        
-        .badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background-color: var(--error);
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-            padding: 4px 8px;
-            border-radius: 20px;
-            border: 2px solid #fff;
-            display: none; 
-        }
+        .badge { position: absolute; top: -5px; right: -5px; background: var(--error); color: white; font-size: 10px; padding: 4px 6px; border-radius: 10px; display: none; }
 
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: white;
-            width: 90%;
-            max-width: 500px;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
-
-        .modal-body {
-            flex: 1;
-            overflow-y: auto;
-            text-align: left;
-            margin-bottom: 15px;
-        }
-
-        .mistake-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #f5f5f5;
-            font-size: 14px;
-        }
-        .mistake-term { font-weight: bold; color: var(--error); }
-        .mistake-def { color: #555; margin-left: 5px; }
-
-        .share-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .action-btn {
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 15px;
-            cursor: pointer;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            text-decoration: none;
-            transition: opacity 0.2s;
-        }
-        .action-btn:hover { opacity: 0.9; }
-
-        .btn-review { background-color: var(--review-color); color: white; margin-bottom: 10px; }
-        .btn-whatsapp { background-color: #25D366; color: white; }
-        .btn-copy { background-color: #f39c12; color: white; }
-        .btn-system { background-color: #3498db; color: white; }
-        .btn-close { background-color: #bdc3c7; color: #2c3e50; margin-top: 10px; }
-        .divider { border-top: 1px solid #eee; margin: 15px 0; }
-        
-        .review-indicator {
-            background-color: var(--review-color);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            margin-bottom: 10px;
-            display: inline-block;
-        }
-
-    
-        /* 🆕 方案 B: 進階分數顯示 */
-        .stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-
-        .score-display {
-            font-size: 17px;
-            font-weight: bold;
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .score-percentage {
-            font-size: 15px;
-            color: #7f8c8d;
-            font-weight: 600;
-        }
-
-        .performance-icon {
-            font-size: 22px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        .progress-display {
-            font-size: 15px;
-            color: #34495e;
-            font-weight: 600;
-        }
-
-        .progress-bar-wrapper {
-            width: 100%;
-            height: 6px;
-            background: #e0e0e0;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.5s ease, background 0.3s ease;
-        }
-
-        .progress-bar-fill.excellent { 
-            background: linear-gradient(90deg, #2ecc71, #27ae60); 
-        }
-        .progress-bar-fill.good { 
-            background: linear-gradient(90deg, #3498db, #2980b9); 
-        }
-        .progress-bar-fill.fair { 
-            background: linear-gradient(90deg, #f39c12, #e67e22); 
-        }
-        .progress-bar-fill.poor { 
-            background: linear-gradient(90deg, #e74c3c, #c0392b); 
-        }
-
-        /* 🆕 清除數據按鈕 */
-        .clear-data-btn {
-            position: fixed;
-            bottom: 100px;
-            right: 20px;
-            background-color: #95a5a6;
-            color: white;
-            border: none;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-            font-size: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s;
-            z-index: 99;
-        }
-        .clear-data-btn:hover { 
-            transform: scale(1.1); 
-            background-color: #7f8c8d; 
+        /* 匯入區域 */
+        textarea {
+            width: 100%; height: 150px; padding: 10px; box-sizing: border-box;
+            border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text);
+            font-family: monospace; font-size: 12px; resize: vertical;
         }
 
     </style>
 </head>
 <body>
 
-<div class="container" id="app">
-    <div id="start-screen">
-        <h1>Music Terms Quiz</h1>
-        <p class="subtitle">Italian, German & French Terms</p>
+<button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
 
-        <div class="mode-select">
-            <button onclick="startQuiz('zh')">中文模式 (Chinese Mode)</button>
-            <button onclick="startQuiz('en')">English Mode</button>
+<div class="container">
+    
+    <div id="screen-home">
+        <h1>Music Terms Ultimate</h1>
+        <p class="subtitle">Time Challenge & Learning</p>
+        
+        <div class="category-filter">
+            <span class="filter-title">🏷️ Select Categories (分類練習):</span>
+            <div class="checkbox-group" id="category-checkboxes">
+                </div>
         </div>
-        <div style="margin-top: 30px; font-size: 13px; color: #999; line-height: 1.6;">
-            💡 點擊 <span style="font-size:16px">🔊</span> 圖示聆聽發音<br>
-            (Click the speaker icon to hear pronunciation)
+
+        <button class="btn" onclick="selectTime(300)">⏱️ 5 分鐘挑戰</button>
+        <button class="btn" onclick="selectTime(900)">⏱️ 15 分鐘挑戰</button>
+        <button class="btn btn-outline" onclick="selectTime(-1)">♾️ 不限時練習</button>
+        
+        <div style="margin-top: 20px; font-size: 0.9rem; color: var(--text-sec);">
+            High Score (5m): <span id="home-best-5m" style="color:var(--primary)">0</span>
         </div>
     </div>
 
-    <div id="quiz-screen" class="quiz-area">
-        <div id="review-banner" class="hidden" style="text-align:center;">
-            <span class="review-indicator">🔄 錯題重溫模式 (Review Mode)</span>
+    <div id="screen-settings" class="hidden">
+        <h2>Challenge Settings</h2>
+        
+        <div class="setting-row">
+            <span style="font-weight:bold;">👂 Dictation Mode (聽力測驗)</span>
+            <label class="switch">
+                <input type="checkbox" id="dictation-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-sec); margin-top:-10px; margin-bottom:20px; text-align:left;">
+            隱藏單字文字，只播放發音，答題後顯示拼寫。<br>
+            Hide text, play audio only. Reveal after answering.
+        </p>
+
+        <button class="btn" onclick="startGame('zh')">🇨🇳 中文模式 (Chinese)</button>
+        <button class="btn" onclick="startGame('en')">🇺🇸 English Mode</button>
+        <button class="btn btn-outline" onclick="goHome()">↩️ Back</button>
+    </div>
+
+    <div id="screen-quiz" class="hidden">
+        <div class="game-top-bar">
+            <div class="timer-badge" id="timer-display">00:00</div>
+            <div class="toggle-wrapper">
+                <span>Auto Next</span>
+                <label class="switch">
+                    <input type="checkbox" id="auto-next-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
         </div>
 
         <div class="stats">
-            <div class="score-display" id="score-display">
-                ✅ 0/0 <span class="score-percentage">(--)</span>
-            </div>
-            <div class="progress-display" id="progress-display">
-                📊 第 <strong>1</strong> 題
-            </div>
+            <div class="score-display" id="score-display">✅ 0</div>
+            <div id="progress-text" style="color:var(--text-sec)">Q: 1</div>
         </div>
         <div class="progress-bar-wrapper">
             <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%"></div>
@@ -424,678 +321,515 @@
 
         <div class="term-container">
             <div class="term-display">
-                <span id="question-term">Loading...</span>
-                <button onclick="playAudio()" class="audio-btn" title="Listen">🔊</button>
+                <span id="question-term">Term</span>
+                <button onclick="playCurrentTerm()" class="audio-btn" id="quiz-audio-btn">🔊</button>
             </div>
             <span id="question-ipa" class="term-ipa"></span>
         </div>
 
-        <div id="options-container">
-        </div>
+        <div id="options-container"></div>
 
         <div id="feedback-area" class="feedback">
             <h3 id="feedback-title"></h3>
             <div id="feedback-content"></div>
-
-            <div id="pronunciation-box" class="pronunciation-guide hidden">
-                <div class="pinyin-row">
-                    <span class="pinyin-label">粵語擬音:</span>
-                    <span id="canto-text" class="pinyin-text"></span>
-                </div>
-                <div class="pinyin-row">
-                    <span class="pinyin-label">國語擬音:</span>
-                    <span id="mando-text" class="pinyin-text"></span>
-                </div>
-            </div>
+            <div id="pronunciation-box" class="hidden" style="margin-top:10px; font-size:0.9rem; color:var(--text-sec);"></div>
         </div>
 
-        <button id="next-btn" class="next-btn hidden" onclick="nextQuestion()">Next Question</button>
-        <button class="next-btn" style="background:#95a5a6; margin-top:20px;" onclick="location.reload()">Menu</button>
+        <button id="next-btn" class="btn hidden" style="margin-top:20px; background-color:#34495e;" onclick="forceNext()">➡ Next</button>
+        <button class="btn btn-outline" style="margin-top:10px; font-size:14px;" onclick="endGame(false)">Exit</button>
+    </div>
+
+    <div id="screen-result" class="hidden">
+        <h1>Finished!</h1>
+        <div style="font-size: 4rem; font-weight: bold; color: var(--primary);" id="final-score">0</div>
+        <p style="color: var(--text-sec);">Correct Answers</p>
+        <button class="btn" onclick="goHome()">🏠 Home</button>
+        <button class="btn btn-outline" onclick="openMistakesModal()">📝 Mistakes</button>
     </div>
 </div>
 
 <div class="fab-container hidden" id="fab-mistakes">
-    <button class="fab-btn" onclick="openMistakesModal()" title="View Wrong Answers">
+    <button class="fab-btn" onclick="openMistakesModal()">
         📝
         <span class="badge" id="mistake-count">0</span>
     </button>
 </div>
 
-<!-- 🆕 清除數據按鈕 -->
-<button class="clear-data-btn hidden" id="clear-data-btn" onclick="clearAllData()" title="Clear All Data">
-    🗑️
-</button>
+<div class="footer-tools">
+    <button class="tool-btn" onclick="openImportModal()">💾 Import Data</button>
+</div>
+<div class="footer-credit">豐狂出品 • 樂理隨身聽</div>
 
-<div class="modal-overlay" id="mistake-modal">
+<div class="modal-overlay" id="import-modal">
     <div class="modal-content">
-        <div class="modal-header">
-            <h3 style="margin:0">錯題本 (My Mistakes)</h3>
-            <span style="cursor:pointer; font-size:24px" onclick="closeMistakesModal()">&times;</span>
+        <h3>Import Custom JSON</h3>
+        <p style="font-size:0.9rem; color:var(--text-sec);">Paste your JSON array here (temporary override):</p>
+        <textarea id="import-text" placeholder='[{"term":"test","def":"測試","en":"test","lang":"English"}]'></textarea>
+        <div style="margin-top:15px; display:flex; gap:10px;">
+            <button class="btn" onclick="processImport()">Load Data</button>
+            <button class="btn btn-outline" onclick="closeImportModal()">Cancel</button>
         </div>
-
-        <div class="modal-body" id="mistakes-list">
-            <p style="text-align:center; color:#999; margin-top:20px;">目前沒有錯題，太棒了！<br>No mistakes yet.</p>
-        </div>
-
-        <div class="share-actions" id="share-actions-area" style="display:none;">
-            <button class="action-btn btn-review" onclick="startReviewMode()">
-                <span>🔄</span> 錯題重溫 (Review Mistakes)
-            </button>
-            <div class="divider"></div>
-            <button class="action-btn btn-whatsapp" onclick="shareToWhatsapp()">
-                <span>💬</span> WhatsApp 分享
-            </button>
-            <button class="action-btn btn-system" onclick="shareSystem()">
-                <span>📤</span> 系統分享 (System Share)
-            </button>
-            <button class="action-btn btn-copy" onclick="copyToClipboard()">
-                <span>📋</span> 複製內容 (Copy)
-            </button>
-        </div>
-
-        <button class="action-btn btn-close" onclick="closeMistakesModal()">關閉 (Close)</button>
+        <button class="btn btn-outline" style="margin-top:10px;" onclick="resetData()">↺ Reset to Default</button>
     </div>
 </div>
 
-<div class="footer-credit">豐狂出品 • 樂理隨身聽</div>
+<div class="modal-overlay" id="mistake-modal">
+    <div class="modal-content">
+        <h3 style="margin:0 0 15px 0;">My Mistakes</h3>
+        <div style="flex:1; overflow-y:auto; text-align:left;" id="mistakes-list"></div>
+        <div style="margin-top:15px;">
+            <button class="btn" style="background-color:var(--review-color)" onclick="startReviewMode()">🔄 Review Mistakes</button>
+            <button class="btn btn-outline" onclick="closeMistakesModal()">Close</button>
+        </div>
+    </div>
+</div>
 
 <script>
-    const langMap = { "Italian": "it-IT", "German": "de-DE", "French": "fr-FR", "Latin": "it-IT", "English": "en-US" };
+    // --- 1. 資料庫 (已分類) ---
+    const defaultData = [
+        // Tempo (速度)
+        { term: "largo", cat: "Tempo", ipa: "/ˈlar.ɡo/", def: "廣板 (寬廣緩慢)", lang: "Italian", en: "Broad, slow" },
+        { term: "lento", cat: "Tempo", ipa: "/ˈlɛn.to/", def: "慢板", lang: "Italian", en: "Slow" },
+        { term: "adagio", cat: "Tempo", ipa: "/aˈda.dʒo/", def: "柔板 (悠閒)", lang: "Italian", en: "Slow, at ease" },
+        { term: "andante", cat: "Tempo", ipa: "/anˈdan.te/", def: "行板 (行走速度)", lang: "Italian", en: "Walking pace" },
+        { term: "moderato", cat: "Tempo", ipa: "/mo.deˈra.to/", def: "中板 (適中)", lang: "Italian", en: "Moderate" },
+        { term: "allegro", cat: "Tempo", ipa: "/alˈle.ɡro/", def: "快板 (快速)", lang: "Italian", en: "Fast, lively" },
+        { term: "presto", cat: "Tempo", ipa: "/ˈprɛs.to/", def: "急板 (甚快)", lang: "Italian", en: "Very fast" },
+        { term: "vivace", cat: "Tempo", ipa: "/viˈva.tʃe/", def: "甚快 (充滿活力)", lang: "Italian", en: "Lively, quick" },
+        { term: "ritardando", cat: "Tempo", ipa: "/ri.tarˈdan.do/", def: "漸慢", lang: "Italian", en: "Gradually slower" },
+        { term: "accelerando", cat: "Tempo", ipa: "/at.tʃe.leˈran.do/", def: "漸快", lang: "Italian", en: "Gradually faster" },
+        { term: "a tempo", cat: "Tempo", ipa: "/a ˈtɛm.po/", def: "回原速", lang: "Italian", en: "Back to original speed" },
+        { term: "rubato", cat: "Tempo", ipa: "/ruˈba.to/", def: "彈性速度", lang: "Italian", en: "Robbed time" },
+        { term: "langsam", cat: "Tempo", ipa: "/ˈlaŋzaːm/", def: "慢的", lang: "German", en: "Slow" },
+        { term: "schnell", cat: "Tempo", ipa: "/ʃnɛl/", def: "快速地", lang: "German", en: "Fast" },
 
-    const musicTerms = [
-        { term: "langsam", ipa: "/ˈlaŋzaːm/", def: "慢的", lang: "German", en: "Slow", canto: "Laang-Zaam", mando: "Lāng-Zām" },
-        { term: "lent", ipa: "/lɑ̃/", def: "慢的", lang: "French", en: "Slow", canto: "Long", mando: "Lāng" },
-        { term: "largo", ipa: "/ˈlar.ɡo/", def: "廣板 (寬廣地、緩慢地)", lang: "Italian", en: "Broad, slow", canto: "Laa-Go", mando: "Lā-Gōu" },
-        { term: "lento", ipa: "/ˈlɛn.to/", def: "慢板", lang: "Italian", en: "Slow", canto: "Len-Toe", mando: "Lēn-Tōu" },
-        { term: "larghetto", ipa: "/larˈɡet.to/", def: "小廣板", lang: "Italian", en: "Rather broad", canto: "Laa-Get-Toe", mando: "Lā-Gěi-Tōu" },
-        { term: "andantino", ipa: "/an.danˈti.no/", def: "小行板", lang: "Italian", en: "Slightly faster/slower than Andante", canto: "An-Daan-Ti-No", mando: "Ān-Dàn-Tī-Nuò" },
-        { term: "andante", ipa: "/anˈdan.te/", def: "行板", lang: "Italian", en: "Walking pace", canto: "An-Daan-Tay", mando: "Ān-Dàn-Tēi" },
-        { term: "comodo", ipa: "/ˈkɔ.mo.do/", def: "舒適地", lang: "Italian", en: "Comfortable", canto: "Ko-Mo-Do", mando: "Kōu-Mó-Duō" },
-        { term: "modéré", ipa: "/mɔ.de.ʁe/", def: "中等的", lang: "French", en: "Moderate", canto: "Mo-Day-Ray", mando: "Mó-Dé-Réi" },
-        { term: "mäßig", ipa: "/ˈmɛːsɪç/", def: "中等的", lang: "German", en: "Moderate", canto: "Me-Sich", mando: "Mēi-Sī-Hē" },
-        { term: "meno mosso", ipa: "/ˈme.no ˈmɔs.so/", def: "稍慢", lang: "Italian", en: "Less movement", canto: "May-No Mos-So", mando: "Mēi-Nuò Mó-Suǒ" },
-        { term: "retenu", ipa: "/ʁə.tə.ny/", def: "突慢", lang: "French", en: "Held back", canto: "Re-Ten-New", mando: "Ruē-Tè-Niū" },
-        { term: "rubato", ipa: "/ruˈba.to/", def: "彈性速度", lang: "Italian", en: "Robbed time", canto: "Ru-Baa-Toe", mando: "Lǔ-Bā-Tōu" },
-        { term: "ritenuto", ipa: "/ri.teˈnu.to/", def: "突慢", lang: "Italian", en: "Held back", canto: "Ri-Ten-Nu-Toe", mando: "Ruì-Tè-Nǔ-Tōu" },
-        { term: "rallentando", ipa: "/ral.lenˈtan.do/", def: "漸慢", lang: "Italian", en: "Gradually slower", canto: "Raa-Len-Taan-Do", mando: "Ruā-Lén-Tàn-Duō" },
-        { term: "ritardando", ipa: "/ri.tarˈdan.do/", def: "漸慢", lang: "Italian", en: "Gradually slower", canto: "Ri-Taa-Daan-Do", mando: "Ruì-Tà-Dàn-Duō" },
-        { term: "a tempo", ipa: "/a ˈtɛm.po/", def: "回原速", lang: "Italian", en: "Back to original speed", canto: "Ah Tem-Po", mando: "Ā Tēm-Pōu" },
-        { term: "come prima", ipa: "/ˈko.me ˈpri.ma/", def: "如初", lang: "Italian", en: "As before", canto: "Ko-May Pri-Ma", mando: "Kōu-Mēi Pǔ-Lì-Mǎ" },
-        { term: "alla breve", ipa: "/ˈal.la ˈbrɛ.ve/", def: "二二拍", lang: "Italian", en: "Cut common time", canto: "Ah-La Bre-Ve", mando: "Ā-Lā Bu-Réi-Vēi" },
-        { term: "alla marcia", ipa: "/ˈal.la ˈmar.tʃa/", def: "進行曲風格", lang: "Italian", en: "In the style of a march", canto: "Ah-La Maa-Cha", mando: "Ā-Lā Mǎ-Qià" },
-        { term: "grazioso", ipa: "/ɡratˈtsjo.zo/", def: "優雅地", lang: "Italian", en: "Graceful", canto: "Graat-Zi-O-So", mando: "Gé-Lā-Qì-Ōu-Suō" },
-        { term: "allegretto", ipa: "/al.leˈɡret.to/", def: "小快板", lang: "Italian", en: "Fairly fast", canto: "Ah-Le-Gret-Toe", mando: "Ā-Léi-Guěi-Tōu" },
-        { term: "allegro", ipa: "/alˈle.ɡro/", def: "快板", lang: "Italian", en: "Fast, lively", canto: "Ah-Le-Gro", mando: "Ā-Léi-Guō" },
-        { term: "più mosso", ipa: "/pju ˈmɔs.so/", def: "稍快", lang: "Italian", en: "More movement", canto: "Pew Mos-So", mando: "Pi-Yōu Mó-Suǒ" },
-        { term: "animato", ipa: "/a.niˈma.to/", def: "生動地", lang: "Italian", en: "Animated", canto: "Ah-Ni-Maa-Toe", mando: "Ā-Ní-Mǎ-Tōu" },
-        { term: "vivace", ipa: "/viˈva.tʃe/", def: "甚快 / 充滿活力", lang: "Italian", en: "Lively, quick", canto: "Vi-Vaa-Chi", mando: "Vī-Vā-Qiè" },
-        { term: "vivo", ipa: "/ˈvi.vo/", def: "活潑地", lang: "Italian", en: "Lively", canto: "Vi-Vo", mando: "Vī-Vōu" },
-        { term: "stringendo", ipa: "/strinˈdʒɛn.do/", def: "加緊 (漸快)", lang: "Italian", en: "Pressing on", canto: "Strin-Jen-Do", mando: "Si-Tè-Lín-Jiān-Duō" },
-        { term: "vite", ipa: "/vit/", def: "快速地", lang: "French", en: "Fast", canto: "Veet", mando: "Vì-Tè" },
-        { term: "schnell", ipa: "/ʃnɛl/", def: "快速地", lang: "German", en: "Fast", canto: "Sh-Nel", mando: "Shī-Nài-Er" },
-        { term: "presto", ipa: "/ˈprɛs.to/", def: "急板", lang: "Italian", en: "Very fast", canto: "Pres-Toe", mando: "Pǔ-Ruēi-Sī-Tōu" },
-        { term: "prestissimo", ipa: "/presˈtis.si.mo/", def: "最急板", lang: "Italian", en: "As fast as possible", canto: "Pres-Tis-Si-Mo", mando: "Pǔ-Ruēi-Sī-Tí-Sī-Mó" },
-        { term: "accelerando", ipa: "/at.tʃe.leˈran.do/", def: "漸快", lang: "Italian", en: "Gradually faster", canto: "Ah-Che-Le-Raan-Do", mando: "Ā-Qiè-Léi-Ruǎn-Duō" },
-        { term: "da capo", ipa: "/da ˈka.po/", def: "從頭再奏", lang: "Italian", en: "From the beginning", canto: "Daa Ka-Po", mando: "Dá Kǎ-Pōu" },
-        { term: "fine", ipa: "/ˈfi.ne/", def: "結束", lang: "Italian", en: "The end", canto: "Fi-Nay", mando: "Fēi-Néi" },
-        { term: "dal segno", ipa: "/dal ˈse.ɲo/", def: "從記號處再奏", lang: "Italian", en: "From the sign", canto: "Daal Sen-Yo", mando: "Dál Sēn-Yōu" },
-        { term: "attacca", ipa: "/atˈtak.ka/", def: "緊接下段", lang: "Italian", en: "Go straight on", canto: "Ah-Taak-Ka", mando: "Ā-Tǎ-Kǎ" },
-        { term: "legato", ipa: "/leˈɡa.to/", def: "圓滑奏", lang: "Italian", en: "Smoothly", canto: "Le-Gaa-Toe", mando: "Léi-Gā-Tōu" },
-        { term: "staccato", ipa: "/stakˈka.to/", def: "斷奏", lang: "Italian", en: "Detached", canto: "Sta-Kaa-Toe", mando: "Sī-Tǎ-Kǎ-Tōu" },
-        { term: "leggiero", ipa: "/ledˈdʒɛ.ro/", def: "輕巧地", lang: "Italian", en: "Lightly", canto: "Le-Jee-E-Ro", mando: "Léi-Jié-Luō" },
-        { term: "marcato", ipa: "/marˈka.to/", def: "加強音", lang: "Italian", en: "Marked", canto: "Maa-Kaa-Toe", mando: "Mǎ-Kǎ-Tōu" },
-        { term: "prima", ipa: "/ˈpri.ma/", def: "第一", lang: "Italian", en: "First", canto: "Pri-Ma", mando: "Pǔ-Lì-Mǎ" },
-        { term: "simile", ipa: "/ˈsi.mi.le/", def: "同前", lang: "Italian", en: "In the same way", canto: "Si-Mi-Lay", mando: "Sī-Mǐ-Léi" },
-        { term: "ad libitum", ipa: "/ad ˈli.bi.tum/", def: "隨意地", lang: "Latin", en: "At choice", canto: "Ad Li-Bi-Tum", mando: "Ā-Dé Lì-Bǐ-Tǔ-Mǔ" },
-        { term: "crescendo", ipa: "/kreˈʃɛn.do/", def: "漸強", lang: "Italian", en: "Gradually louder", canto: "Kre-Shen-Do", mando: "Kě-Ruēi-Xuān-Duō" },
-        { term: "decrescendo", ipa: "/de.kreˈʃɛn.do/", def: "漸弱", lang: "Italian", en: "Gradually softer", canto: "Day-Kre-Shen-Do", mando: "Dēi-Kě-Ruēi-Xuān-Duō" },
-        { term: "diminuendo", ipa: "/di.mi.nuˈɛn.do/", def: "漸弱", lang: "Italian", en: "Gradually softer", canto: "Di-Min-Yu-En-Do", mando: "Dì-Mǐ-Niǔ-Wēn-Duō" },
-        { term: "forte", ipa: "/ˈfɔr.te/", def: "強", lang: "Italian", en: "Loud", canto: "For-Tay", mando: "Fó-Tēi" },
-        { term: "fortissimo", ipa: "/forˈtis.si.mo/", def: "甚強", lang: "Italian", en: "Very loud", canto: "For-Tis-Si-Mo", mando: "Fó-Tí-Sī-Mó" },
-        { term: "mezzo piano", ipa: "/ˈmɛd.dzo ˈpja.no/", def: "中弱", lang: "Italian", en: "Moderately soft", canto: "Met-So Pi-Aa-No", mando: "Mēi-Zuǒ Pī-A-Nuò" },
-        { term: "piano", ipa: "/ˈpja.no/", def: "弱", lang: "Italian", en: "Soft", canto: "Pi-Aa-No", mando: "Pī-A-Nuò" },
-        { term: "pianissimo", ipa: "/pjaˈnis.si.mo/", def: "甚弱", lang: "Italian", en: "Very soft", canto: "Pi-Aa-Nis-Si-Mo", mando: "Pī-A-Ní-Sī-Mó" },
-        { term: "fortepiano", ipa: "/ˈfɔr.te ˈpja.no/", def: "強後突弱", lang: "Italian", en: "Loud then soft", canto: "For-Tay Pi-Aa-No", mando: "Fó-Tēi Pī-A-Nuò" },
-        { term: "sforzando", ipa: "/sforˈtsan.do/", def: "突強", lang: "Italian", en: "Forced", canto: "Sfor-Tsaan-Do", mando: "Sī-Fó-Cǎn-Duō" },
-        { term: "rinforzando", ipa: "/rin.forˈtsan.do/", def: "加強", lang: "Italian", en: "Reinforcing", canto: "Rin-For-Tsaan-Do", mando: "Lín-Fó-Cǎn-Duō" },
-        { term: "cantabile", ipa: "/kanˈta.bi.le/", def: "如歌地", lang: "Italian", en: "Singing style", canto: "Kaan-Taa-Bi-Lay", mando: "Kān-Tǎ-Bǐ-Léi" },
-        { term: "dolce", ipa: "/ˈdol.tʃe/", def: "甜美地", lang: "Italian", en: "Sweet", canto: "Dol-Chay", mando: "Duō-Qiè" },
-        { term: "espressivo", ipa: "/es.presˈsi.vo/", def: "富有表情地", lang: "Italian", en: "Expressive", canto: "Es-Pres-Si-Vo", mando: "Ai-Sī-Pǔ-Ruēi-Sī-Vōu" },
-        { term: "con forza", ipa: "/kon ˈfɔr.tsa/", def: "有力地", lang: "Italian", en: "With force", canto: "Kon For-Tsa", mando: "Kōng Fó-Cā" },
-        { term: "energico", ipa: "/eˈnɛr.dʒi.ko/", def: "精力充沛地", lang: "Italian", en: "Energetic", canto: "En-Er-Ji-Ko", mando: "Ai-Nài-Jí-Kōu" },
-        { term: "giocoso", ipa: "/dʒoˈko.zo/", def: "詼諧地", lang: "Italian", en: "Playful", canto: "Jo-Ko-So", mando: "Jiào-Kōu-Suō" },
-        { term: "scherzando", ipa: "/skerˈtsan.do/", def: "戲謔地", lang: "Italian", en: "Playful, joking", canto: "Sker-Tsaan-Do", mando: "Sī-Kě-Cǎn-Duō" },
-        { term: "semplice", ipa: "/ˈsɛm.pli.tʃe/", def: "單純地", lang: "Italian", en: "Simple", canto: "Sem-Pli-Chay", mando: "Sēn-Pǔ-Lǐ-Qiè" },
-        { term: "sostenuto", ipa: "/so.steˈnu.to/", def: "持續地", lang: "Italian", en: "Sustained", canto: "Sos-Ten-Nu-Toe", mando: "Suǒ-Sī-Tè-Nǔ-Tōu" },
-        { term: "subito", ipa: "/ˈsu.bi.to/", def: "突然地", lang: "Italian", en: "Suddenly", canto: "Su-Bi-Toe", mando: "Sū-Bǐ-Tōu" },
-        { term: "tranquillo", ipa: "/tranˈkwil.lo/", def: "平靜地", lang: "Italian", en: "Calm", canto: "Traan-Kwil-Lo", mando: "Tè-Luǎn-Kuī-Luō" },
-        { term: "triste", ipa: "/ˈtri.ste/", def: "悲傷地", lang: "Italian", en: "Sad", canto: "Tris-Tay", mando: "Tè-Ruì-Sī-Tēi" },
-        { term: "affettuoso", ipa: "/af.fetˈtwo.zo/", def: "深情地", lang: "Italian", en: "Affectionate", canto: "Ah-Fet-Two-So", mando: "Ā-Fēi-Tuō-Suō" },
-        { term: "amabile", ipa: "/aˈma.bi.le/", def: "可愛地", lang: "Italian", en: "Amiable", canto: "Ah-Maa-Bi-Lay", mando: "Ā-Mǎ-Bǐ-Léi" },
-        { term: "appassionato", ipa: "/ap.pas.sjoˈna.to/", def: "熱情地", lang: "Italian", en: "Passionate", canto: "Ah-Pas-Sio-Naa-Toe", mando: "Ā-Pà-Sio-Nǎ-Tōu" },
-        { term: "con brio", ipa: "/kon ˈbri.o/", def: "有活力地", lang: "Italian", en: "With vigour", canto: "Kon Bri-O", mando: "Kōng Bù-Lǐ-Ōu" },
-        { term: "deciso", ipa: "/deˈtʃi.zo/", def: "堅定地", lang: "Italian", en: "Determined", canto: "De-Chi-So", mando: "Dēi-Qí-Suō" },
-        { term: "mesto", ipa: "/ˈmɛ.sto/", def: "憂鬱地", lang: "Italian", en: "Sad", canto: "Mes-Toe", mando: "Mēi-Sī-Tōu" },
-        { term: "misterioso", ipa: "/mi.steˈrjo.zo/", def: "神秘地", lang: "Italian", en: "Mysterious", canto: "Mis-Tay-Rio-So", mando: "Mǐ-Sī-Tè-Lió-Suō" },
-        { term: "animé", ipa: "/a.ni.me/", def: "活躍的", lang: "French", en: "Animated", canto: "Ah-Ni-May", mando: "Ā-Ní-Mēi" },
-        { term: "douce", ipa: "/dus/", def: "甜美的", lang: "French", en: "Sweet", canto: "Doos", mando: "Dù-Sī" },
-        { term: "lebhaft", ipa: "/ˈleːphaft/", def: "活潑的", lang: "German", en: "Lively", canto: "Layp-Haft", mando: "Léi-Pǔ-Hā-Fū-Tè" },
-        { term: "ruhig", ipa: "/ˈruːɪç/", def: "平靜的", lang: "German", en: "Peaceful", canto: "Ru-Hick", mando: "Lù-Xī-Kè" },
-        { term: "traurig", ipa: "/ˈtʁaʊ̯ʁɪç/", def: "悲傷的", lang: "German", en: "Sad", canto: "Trao-Rick", mando: "Tè-Láo-Lǐ-Kè" },
-        { term: "morendo", ipa: "/moˈrɛn.do/", def: "漸弱消失", lang: "Italian", en: "Dying away", canto: "Mo-Ren-Do", mando: "Mó-Ruēi-En-Duō" },
-        { term: "perdendosi", ipa: "/perˈdɛn.do.si/", def: "逐漸消失", lang: "Italian", en: "Dying away", canto: "Per-Den-Do-Si", mando: "Péi-Děn-Duō-Sī" },
-        { term: "smorzando", ipa: "/zmorˈtsan.do/", def: "漸慢且漸弱", lang: "Italian", en: "Dying away", canto: "Smor-Tsaan-Do", mando: "Sī-Mó-Cǎn-Duō" },
-        { term: "sotto voce", ipa: "/ˈsot.to ˈvo.tʃe/", def: "低聲地", lang: "Italian", en: "Undertone", canto: "Sot-To Vo-Chay", mando: "Suǒ-Tōu Vōu-Qiè" },
-        { term: "con", ipa: "/kon/", def: "用、伴隨著", lang: "Italian", en: "With", canto: "Kon", mando: "Kōng" },
-        { term: "ma", ipa: "/ma/", def: "但是", lang: "Italian", en: "But", canto: "Maa", mando: "Mǎ" },
-        { term: "meno", ipa: "/ˈme.no/", def: "較少", lang: "Italian", en: "Less", canto: "May-No", mando: "Mēi-Nuò" },
-        { term: "molto", ipa: "/ˈmol.to/", def: "很、甚", lang: "Italian", en: "Very", canto: "Mol-Toe", mando: "Mó-Er-Tōu" },
-        { term: "non", ipa: "/non/", def: "不", lang: "Italian", en: "Not", canto: "Non", mando: "Nòng" },
-        { term: "troppo", ipa: "/ˈtrɔp.po/", def: "太、過多", lang: "Italian", en: "Too much", canto: "Trop-Po", mando: "Tuō-Pōu" },
-        { term: "più", ipa: "/pju/", def: "更多", lang: "Italian", en: "More", canto: "Pew", mando: "Pi-Yōu" },
-        { term: "poco", ipa: "/ˈpɔ.ko/", def: "一點點", lang: "Italian", en: "A little", canto: "Po-Ko", mando: "Pōu-Kōu" },
-        { term: "assai", ipa: "/asˈsai/", def: "非常", lang: "Italian", en: "Very", canto: "As-Sai", mando: "Ā-Sāi" },
-        { term: "quasi", ipa: "/ˈkwa.zi/", def: "幾乎", lang: "Italian", en: "As if", canto: "Kwaa-Zi", mando: "Kuā-Zī" },
-        { term: "sempre", ipa: "/ˈsɛm.pre/", def: "始終", lang: "Italian", en: "Always", canto: "Sem-Pray", mando: "Sēn-Pǔ-Réi" },
-        { term: "senza", ipa: "/ˈsɛn.tsa/", def: "沒有", lang: "Italian", en: "Without", canto: "Sen-Tsa", mando: "Sēn-Cā" },
-        { term: "ben", ipa: "/bɛn/", def: "充分地", lang: "Italian", en: "Well", canto: "Ben", mando: "Bēn" },
-        { term: "grave", ipa: "/ˈɡra.ve/", def: "莊板", lang: "Italian", en: "Very slow", canto: "Graa-Vay", mando: "Gé-Lā-Vēi" },
-        { term: "allargando", ipa: "/al.larˈɡan.do/", def: "漸寬廣", lang: "Italian", en: "Broadening", canto: "Ah-Lar-Gaan-Do", mando: "Ā-Lā-Gǎn-Duō" },
-        { term: "con moto", ipa: "/kon ˈmɔ.to/", def: "有動感地", lang: "Italian", en: "With movement", canto: "Kon Mo-Toe", mando: "Kōng Mó-Tōu" },
-        { term: "agitato", ipa: "/a.dʒiˈta.to/", def: "激動地", lang: "Italian", en: "Agitated", canto: "Ah-Ji-Taa-Toe", mando: "Ā-Jí-Tǎ-Tōu" },
-        { term: "maestoso", ipa: "/ma.eˈsto.zo/", def: "莊嚴地", lang: "Italian", en: "Majestic", canto: "Mai-Sto-So", mando: "Mài-Sī-Tuō-Suō" },
-        { term: "pesante", ipa: "/peˈzan.te/", def: "沈重地", lang: "Italian", en: "Heavy", canto: "Pe-Zaan-Tay", mando: "Pēi-Zǎn-Tēi" },
-        { term: "risoluto", ipa: "/ri.zoˈlu.to/", def: "果斷地", lang: "Italian", en: "Bold", canto: "Ri-Zo-Lu-Toe", mando: "Ruì-Zuǒ-Lǔ-Tōu" },
-        { term: "ritmico", ipa: "/ˈrit.mi.ko/", def: "有節奏地", lang: "Italian", en: "Rhythmic", canto: "Rit-Mi-Ko", mando: "Ruì-Tè-Mǐ-Kōu" },
-        { term: "cantando", ipa: "/kanˈtan.do/", def: "歌唱般地", lang: "Italian", en: "Singing", canto: "Kaan-Taan-Do", mando: "Kān-Tǎn-Duō" },
-        { term: "con dolore", ipa: "/kon doˈlo.re/", def: "悲痛地", lang: "Italian", en: "With grief", canto: "Kon Do-Lo-Ray", mando: "Kōng Duō-Luō-Réi" },
-        { term: "con spirito", ipa: "/kon ˈspi.ri.to/", def: "有精神地", lang: "Italian", en: "With spirit", canto: "Kon Spi-Ri-Toe", mando: "Kōng Sī-Pī-Lǐ-Tōu" },
-        { term: "doloroso", ipa: "/do.loˈro.zo/", def: "痛苦地", lang: "Italian", en: "Sorrowful", canto: "Do-Lo-Ro-So", mando: "Duō-Luō-Ruō-Suō" },
-        { term: "largamente", ipa: "/lar.ɡaˈmen.te/", def: "寬廣地", lang: "Italian", en: "Broadly", canto: "Lar-Gaa-Men-Tay", mando: "Lā-Gǎ-Mēn-Tēi" },
-        { term: "sonoro", ipa: "/soˈnɔ.ro/", def: "響亮地", lang: "Italian", en: "Resonant", canto: "So-No-Ro", mando: "Suǒ-Nuò-Luō" },
-        { term: "a niente", ipa: "/a ˈnjɛn.te/", def: "漸弱至無聲", lang: "Italian", en: "To nothing", canto: "Ah Nyen-Tay", mando: "Ā Ni-Yěn-Tēi" }
+        // Dynamics (力度)
+        { term: "piano", cat: "Dynamics", ipa: "/ˈpja.no/", def: "弱", lang: "Italian", en: "Soft" },
+        { term: "forte", cat: "Dynamics", ipa: "/ˈfɔr.te/", def: "強", lang: "Italian", en: "Loud" },
+        { term: "mezzo piano", cat: "Dynamics", ipa: "", def: "中弱", lang: "Italian", en: "Moderately soft" },
+        { term: "pianissimo", cat: "Dynamics", ipa: "", def: "甚弱", lang: "Italian", en: "Very soft" },
+        { term: "fortissimo", cat: "Dynamics", ipa: "", def: "甚強", lang: "Italian", en: "Very loud" },
+        { term: "crescendo", cat: "Dynamics", ipa: "/kreˈʃɛn.do/", def: "漸強", lang: "Italian", en: "Gradually louder" },
+        { term: "diminuendo", cat: "Dynamics", ipa: "", def: "漸弱", lang: "Italian", en: "Gradually softer" },
+        { term: "sforzando", cat: "Dynamics", ipa: "", def: "突強", lang: "Italian", en: "Forced (Sudden accent)" },
+        
+        // Expression (表情/風格)
+        { term: "cantabile", cat: "Expression", ipa: "/kanˈta.bi.le/", def: "如歌地", lang: "Italian", en: "Singing style" },
+        { term: "dolce", cat: "Expression", ipa: "/ˈdol.tʃe/", def: "甜美地", lang: "Italian", en: "Sweet" },
+        { term: "espressivo", cat: "Expression", ipa: "", def: "富有表情地", lang: "Italian", en: "Expressive" },
+        { term: "grazioso", cat: "Expression", ipa: "", def: "優雅地", lang: "Italian", en: "Graceful" },
+        { term: "maestoso", cat: "Expression", ipa: "", def: "莊嚴地", lang: "Italian", en: "Majestic" },
+        { term: "agitato", cat: "Expression", ipa: "", def: "激動地", lang: "Italian", en: "Agitated" },
+        { term: "tranquillo", cat: "Expression", ipa: "", def: "平靜地", lang: "Italian", en: "Calm" },
+        { term: "scherzando", cat: "Expression", ipa: "", def: "戲謔地", lang: "Italian", en: "Playful" },
+        
+        // General/Structure (其他)
+        { term: "da capo", cat: "General", ipa: "/da ˈka.po/", def: "從頭再奏", lang: "Italian", en: "From the beginning" },
+        { term: "dal segno", cat: "General", ipa: "", def: "從記號處再奏", lang: "Italian", en: "From the sign" },
+        { term: "fine", cat: "General", ipa: "/ˈfi.ne/", def: "結束", lang: "Italian", en: "The end" },
+        { term: "legato", cat: "General", ipa: "/leˈɡa.to/", def: "圓滑奏", lang: "Italian", en: "Smoothly" },
+        { term: "staccato", cat: "General", ipa: "/stakˈka.to/", def: "斷奏", lang: "Italian", en: "Detached" }
     ];
 
-    let currentMode = 'zh'; 
+    const langMap = { "Italian": "it-IT", "German": "de-DE", "French": "fr-FR", "English": "en-US" };
+    
+    // --- 2. 狀態變數 ---
+    let musicTerms = JSON.parse(JSON.stringify(defaultData)); 
+    let currentPool = [];
     let currentQuestion = null;
+    let wrongAnswers = [];
+    
+    // Settings
+    let currentModeTime = 0;
+    let currentLang = 'zh';
+    let isDictation = false;
+    let isReviewMode = false;
+    
+    // Game State
+    let timeLeft = 0;
+    let timerInterval = null;
+    let autoNextTimer = null;
     let score = 0;
     let questionCount = 0;
-    let isAnswering = true;
+    let isAnswering = false;
 
-    let currentPool = []; 
-    let wrongAnswers = [];
-    let isReviewMode = false;
-
-    let statistics = {
-        totalQuestions: 0,
-        correctAnswers: 0,
-        wrongCount: {},
-        startTime: null,
-        sessionHistory: []
+    // --- 3. 初始化與設定 ---
+    window.onload = function() {
+        initTheme();
+        loadStoredData();
+        renderCategoryFilters();
     };
 
-    // 🆕 localStorage 功能
-    function loadFromStorage() {
-        try {
-            const savedMistakes = localStorage.getItem('musicQuiz_mistakes');
-            const savedStats = localStorage.getItem('musicQuiz_stats');
-
-            if (savedMistakes) {
-                const mistakeTerms = JSON.parse(savedMistakes);
-                wrongAnswers = musicTerms.filter(term => mistakeTerms.includes(term.term));
-                updateMistakeBadge();
-            }
-
-            if (savedStats) {
-                const saved = JSON.parse(savedStats);
-                statistics.wrongCount = saved.wrongCount || {};
-                statistics.sessionHistory = saved.sessionHistory || [];
-            }
-        } catch (e) {
-            console.error('載入儲存數據失敗:', e);
-        }
+    function initTheme() {
+        const theme = localStorage.getItem('theme') || 'light';
+        document.body.setAttribute('data-theme', theme);
+        document.querySelector('.theme-toggle').innerText = theme === 'light' ? '🌙' : '☀️';
     }
 
-    function saveToStorage() {
-        try {
-            const mistakeTerms = wrongAnswers.map(q => q.term);
-            localStorage.setItem('musicQuiz_mistakes', JSON.stringify(mistakeTerms));
-
-            const statsToSave = {
-                wrongCount: statistics.wrongCount,
-                sessionHistory: statistics.sessionHistory.slice(-10)
-            };
-            localStorage.setItem('musicQuiz_stats', JSON.stringify(statsToSave));
-        } catch (e) {
-            console.error('儲存數據失敗:', e);
-        }
+    function toggleTheme() {
+        const current = document.body.getAttribute('data-theme');
+        const next = current === 'light' ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        document.querySelector('.theme-toggle').innerText = next === 'light' ? '🌙' : '☀️';
     }
 
-    function clearAllData() {
-        if (confirm('確定要清除所有錯題記錄和統計資料嗎？\nClear all mistakes and statistics?')) {
-            localStorage.removeItem('musicQuiz_mistakes');
-            localStorage.removeItem('musicQuiz_stats');
-            wrongAnswers = [];
-            statistics = {
-                totalQuestions: 0,
-                correctAnswers: 0,
-                wrongCount: {},
-                startTime: null,
-                sessionHistory: []
-            };
-            updateMistakeBadge();
-            alert('所有數據已清除！ Data cleared!');
-            location.reload();
-        }
+    function loadStoredData() {
+        const stored = localStorage.getItem('musicQuiz_mistakes_v6');
+        if (stored) wrongAnswers = JSON.parse(stored);
+        updateMistakeBadge();
+        
+        const stats = JSON.parse(localStorage.getItem('musicQuiz_stats_v6') || '{}');
+        document.getElementById('home-best-5m').innerText = stats["300"] || 0;
     }
 
-    window.addEventListener('DOMContentLoaded', function() {
-        loadFromStorage();
-    });
-
-    // 🆕 方案 B: 更新分數顯示（含圖標和進度條）
-    function updateScoreDisplay() {
-        const correct = score;
-        const total = questionCount;
-        const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
-
-        let performanceIcon = '';
-        let performanceClass = '';
-
-        if (total === 0) {
-            performanceIcon = '';
-            performanceClass = '';
-        } else if (percentage >= 90) {
-            performanceIcon = '🔥';
-            performanceClass = 'excellent';
-        } else if (percentage >= 70) {
-            performanceIcon = '💪';
-            performanceClass = 'good';
-        } else if (percentage >= 50) {
-            performanceIcon = '⚡';
-            performanceClass = 'fair';
-        } else {
-            performanceIcon = '💧';
-            performanceClass = 'poor';
-        }
-
-        const scoreText = total > 0 
-            ? `✅ ${correct}/${total} <span class="score-percentage">(${percentage}%)</span> <span class="performance-icon">${performanceIcon}</span>`
-            : '✅ 0/0 <span class="score-percentage">(--)</span>';
-
-        document.getElementById('score-display').innerHTML = scoreText;
-
-        const progressFill = document.getElementById('progress-bar-fill');
-        if (progressFill) {
-            progressFill.style.width = percentage + '%';
-            progressFill.className = 'progress-bar-fill ' + performanceClass;
-        }
+    // 動態生成分類 Checkbox
+    function renderCategoryFilters() {
+        // Get unique categories
+        const cats = [...new Set(musicTerms.map(i => i.cat || 'General'))].sort();
+        const container = document.getElementById('category-checkboxes');
+        container.innerHTML = '';
+        
+        cats.forEach(c => {
+            const label = document.createElement('label');
+            label.className = 'checkbox-label';
+            label.innerHTML = `<input type="checkbox" value="${c}" checked> ${c}`;
+            container.appendChild(label);
+        });
     }
 
-    // 🆕 更新進度顯示
-    function updateProgressDisplay() {
-        const progressEl = document.getElementById('progress-display');
-
-        if (isReviewMode) {
-            const remaining = wrongAnswers.length;
-            progressEl.innerHTML = `🔄 剩餘 <strong>${remaining}</strong> 題`;
-        } else {
-            progressEl.innerHTML = `📊 第 <strong>${questionCount}</strong> 題`;
-        }
+    function getSelectedCategories() {
+        const checkboxes = document.querySelectorAll('#category-checkboxes input:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
     }
 
-    function startQuiz(mode) {
-        currentMode = mode;
+    // --- 4. 導航邏輯 ---
+    function showScreen(id) {
+        ['screen-home', 'screen-settings', 'screen-quiz', 'screen-result'].forEach(s => {
+            document.getElementById(s).classList.add('hidden');
+        });
+        document.getElementById(id).classList.remove('hidden');
+        
+        const fab = document.getElementById('fab-mistakes');
+        if(id === 'screen-home') fab.classList.remove('hidden');
+        else fab.classList.add('hidden');
+    }
+
+    function selectTime(seconds) {
+        currentModeTime = seconds;
+        showScreen('screen-settings');
+    }
+
+    function goHome() {
+        stopAllTimers();
+        window.speechSynthesis.cancel();
+        showScreen('screen-home');
+        loadStoredData();
+    }
+
+    function startGame(lang) {
+        // Apply Filters
+        const selectedCats = getSelectedCategories();
+        if (selectedCats.length === 0) {
+            alert("Please select at least one category!");
+            return;
+        }
+
+        currentPool = musicTerms.filter(t => selectedCats.includes(t.cat || 'General'));
+        
+        if (currentPool.length < 4) {
+            alert("Not enough terms in selected categories. Please select more.");
+            return;
+        }
+
+        // Apply Settings
+        currentLang = lang;
+        isDictation = document.getElementById('dictation-toggle').checked;
         isReviewMode = false;
-        currentPool = musicTerms; 
-
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('quiz-screen').style.display = 'block';
-        document.getElementById('fab-mistakes').classList.remove('hidden');
-        document.getElementById('review-banner').classList.add('hidden');
-        document.getElementById('clear-data-btn').classList.remove('hidden');
-
-        score = 0;
-        questionCount = 0;
-        statistics.totalQuestions = 0;
-        statistics.correctAnswers = 0;
-        statistics.startTime = Date.now();
-
-        updateScoreDisplay();
-        updateProgressDisplay();
-
-        nextQuestion();
+        
+        startQuizLogic();
     }
 
     function startReviewMode() {
         if (wrongAnswers.length === 0) return;
-
+        currentPool = wrongAnswers; // Review uses stored mistakes object
+        currentLang = 'zh';
+        isDictation = false; 
         isReviewMode = true;
-        currentPool = wrongAnswers;
+        currentModeTime = -1;
+        
+        closeMistakesModal();
+        startQuizLogic();
+    }
 
+    function startQuizLogic() {
         score = 0;
         questionCount = 0;
-        statistics.totalQuestions = 0;
-        statistics.correctAnswers = 0;
-        statistics.startTime = Date.now();
+        document.getElementById('score-display').innerText = `✅ 0`;
+        document.getElementById('progress-bar-fill').style.width = '0%';
+        
+        if (currentModeTime > 0) {
+            timeLeft = currentModeTime;
+            startTimer();
+        } else {
+            document.getElementById('timer-display').innerText = "∞";
+        }
 
-        closeMistakesModal();
-        document.getElementById('review-banner').classList.remove('hidden');
-        updateScoreDisplay();
-        updateProgressDisplay();
-        alert("開始重溫錯題模式！\n答對的題目將會移出清單，答錯則保留。\nStarting Review Mode!");
-
+        showScreen('screen-quiz');
         nextQuestion();
     }
 
-    function getRandomItem(array) {
-        return array[Math.floor(Math.random() * array.length)];
-    }
-
-    function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-    }
-
-    function generateOptions(correctItem) {
-        const options = [correctItem];
-        while (options.length < 4) {
-            const randomItem = getRandomItem(musicTerms); 
-            if (!options.includes(randomItem)) {
-                options.push(randomItem);
-            }
-        }
-        shuffleArray(options);
-        return options;
-    }
-
-    function playAudio() {
-        if (!currentQuestion) return;
-        let textToSpeak = currentQuestion.term;
-        const langName = currentQuestion.lang; 
-        const langCode = langMap[langName] || "en-US"; 
-
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            utterance.lang = langCode;
-            utterance.rate = 0.8; 
-            window.speechSynthesis.speak(utterance);
-        } else {
-            const encodedTerm = encodeURIComponent(textToSpeak);
-            const url = `https://translate.google.com/?sl=auto&text=${encodedTerm}&op=translate`;
-            window.open(url, 'googleTranslate', 'width=450,height=550,top=100,left=100,scrollbars=yes');
-        }
-    }
-
+    // --- 5. 遊戲核心 ---
     function nextQuestion() {
-        if (isReviewMode && wrongAnswers.length === 0) {
-            showSessionSummary();
+        if (isReviewMode && currentPool.length === 0) {
+            endGame(false);
             return;
         }
-
-        isAnswering = true;
-        questionCount++;
-        statistics.totalQuestions++;
-
-        updateProgressDisplay();
-
-        document.getElementById('next-btn').classList.add('hidden');
-        document.getElementById('feedback-area').className = 'feedback';
+        
+        isAnswering = false;
+        clearTimeout(autoNextTimer);
         document.getElementById('feedback-area').style.display = 'none';
-        document.getElementById('pronunciation-box').classList.add('hidden');
+        document.getElementById('next-btn').classList.add('hidden');
+        document.getElementById('quiz-audio-btn').disabled = false;
 
-        currentQuestion = getRandomItem(currentPool);
-        const options = generateOptions(currentQuestion);
+        // Pick Question
+        const idx = Math.floor(Math.random() * currentPool.length);
+        currentQuestion = currentPool[idx];
+        questionCount++;
 
-        const displayTerm = currentQuestion.term.charAt(0).toUpperCase() + currentQuestion.term.slice(1);
-        document.getElementById('question-term').textContent = displayTerm;
-
+        // UI Update
+        document.getElementById('progress-text').innerText = `Q: ${questionCount}`;
+        
+        const termEl = document.getElementById('question-term');
         const ipaEl = document.getElementById('question-ipa');
-        ipaEl.textContent = currentQuestion.ipa ? `[ ${currentQuestion.ipa} ]` : '';
+        
+        termEl.innerText = capitalize(currentQuestion.term);
+        ipaEl.innerText = currentQuestion.ipa ? `[ ${currentQuestion.ipa} ]` : '';
 
-        const optionsContainer = document.getElementById('options-container');
-        optionsContainer.innerHTML = '';
+        // Dictation Mode Logic
+        if (isDictation) {
+            termEl.classList.add('hidden-term'); // Blur effect
+            ipaEl.classList.add('hidden');
+            // Auto play audio
+            setTimeout(() => playCurrentTerm(), 500);
+        } else {
+            termEl.classList.remove('hidden-term');
+            ipaEl.classList.remove('hidden');
+        }
 
+        // Generate Options
+        let options = [currentQuestion];
+        while (options.length < 4) {
+            let r = musicTerms[Math.floor(Math.random() * musicTerms.length)];
+            if (!options.some(o => o.term === r.term)) options.push(r);
+        }
+        options.sort(() => Math.random() - 0.5);
+
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
         options.forEach(opt => {
             const btn = document.createElement('button');
             btn.className = 'option-btn';
-
-            if (currentMode === 'zh') {
-                btn.textContent = opt.def;
-            } else {
-                btn.textContent = opt.en;
-            }
-
+            btn.innerText = currentLang === 'zh' ? opt.def : opt.en;
             btn.onclick = () => checkAnswer(opt, btn);
-            optionsContainer.appendChild(btn);
+            container.appendChild(btn);
         });
     }
 
-    function checkAnswer(selectedOption, btnElement) {
-        if (!isAnswering) return;
-        isAnswering = false;
+    function checkAnswer(selected, btn) {
+        if (isAnswering) return;
+        isAnswering = true;
 
-        const isCorrect = selectedOption.term === currentQuestion.term;
-        const feedbackArea = document.getElementById('feedback-area');
-        const feedbackTitle = document.getElementById('feedback-title');
-        const feedbackContent = document.getElementById('feedback-content');
+        // Reveal text if dictation
+        document.getElementById('question-term').classList.remove('hidden-term');
+        document.getElementById('question-ipa').classList.remove('hidden');
 
-        const allBtns = document.querySelectorAll('.option-btn');
-        allBtns.forEach(btn => {
-            if ((currentMode === 'zh' && btn.textContent === currentQuestion.def) ||
-                (currentMode === 'en' && btn.textContent === currentQuestion.en)) {
-                btn.classList.add('correct');
-            } else {
-                btn.disabled = true;
-            }
+        const isCorrect = selected.term === currentQuestion.term;
+        const feedback = document.getElementById('feedback-area');
+        const title = document.getElementById('feedback-title');
+        const content = document.getElementById('feedback-content');
+
+        document.querySelectorAll('.option-btn').forEach(b => {
+            const txt = currentLang === 'zh' ? currentQuestion.def : currentQuestion.en;
+            if (b.innerText === txt) b.classList.add('correct');
+            else b.disabled = true;
         });
 
         if (isCorrect) {
             score++;
-            statistics.correctAnswers++;
-            updateScoreDisplay();
-            btnElement.classList.add('correct');
-            feedbackArea.classList.add('success');
-            feedbackTitle.textContent = "Correct! 答對了！";
-            feedbackTitle.style.color = "#2ECC71";
-
+            btn.classList.add('correct');
+            feedback.className = 'feedback success';
+            title.innerHTML = '✅ Correct!';
+            title.style.color = 'var(--success)';
             if (isReviewMode) {
-                removeFromMistakes(currentQuestion);
-                updateProgressDisplay();
+                // Remove from mistakes
+                currentPool = currentPool.filter(q => q.term !== currentQuestion.term);
+                removeFromMistakes(currentQuestion.term);
             }
-
         } else {
-            if (!statistics.wrongCount[currentQuestion.term]) {
-                statistics.wrongCount[currentQuestion.term] = 0;
-            }
-            statistics.wrongCount[currentQuestion.term]++;
-
-            addToMistakes(currentQuestion);
-            updateScoreDisplay();
-
-            btnElement.classList.add('wrong');
-            feedbackArea.classList.add('error');
-            feedbackTitle.textContent = "Incorrect 答錯了";
-            feedbackTitle.style.color = "#E74C3C";
+            btn.classList.add('wrong');
+            feedback.className = 'feedback error';
+            title.innerHTML = '❌ Incorrect';
+            title.style.color = 'var(--error)';
+            if (!isReviewMode) addToMistakes(currentQuestion);
         }
 
-        feedbackContent.innerHTML = `
-            <div style="font-size:1.1em; margin-bottom:5px;"><strong>${currentQuestion.term}</strong> (${currentQuestion.lang})</div>
-            <div style="color:#555;">${currentQuestion.def}</div>
-            <div style="color:#777; font-size:0.9em;">English: ${currentQuestion.en}</div>
+        // Update Stats
+        document.getElementById('score-display').innerText = `✅ ${score}`;
+        const pct = Math.min((score / questionCount) * 100, 100);
+        document.getElementById('progress-bar-fill').style.width = `${pct}%`;
+
+        // Feedback Text
+        content.innerHTML = `
+            <div><strong>${capitalize(currentQuestion.term)}</strong> (${currentQuestion.lang})</div>
+            <div>${currentQuestion.def}</div>
+            <div style="font-size:0.9em; color:var(--text-sec)">${currentQuestion.en}</div>
         `;
-
-        if(currentMode === 'zh') {
-            const pBox = document.getElementById('pronunciation-box');
-            const cText = document.getElementById('canto-text');
-            const mText = document.getElementById('mando-text');
-            if(currentQuestion.canto || currentQuestion.mando) {
-                pBox.classList.remove('hidden');
-                cText.textContent = currentQuestion.canto || '-';
-                mText.textContent = currentQuestion.mando || '-';
-            }
-        }
-
-        feedbackArea.style.display = 'block';
+        
+        feedback.style.display = 'block';
         document.getElementById('next-btn').classList.remove('hidden');
-    }
 
-    function addToMistakes(question) {
-        const exists = wrongAnswers.some(q => q.term === question.term);
-        if (!exists) {
-            wrongAnswers.push(question);
-            updateMistakeBadge();
-            saveToStorage();
+        // Play Audio Sequence (Reinforcement)
+        playAudioSequence(currentQuestion);
+
+        // Auto Next
+        if (document.getElementById('auto-next-toggle').checked) {
+            autoNextTimer = setTimeout(() => {
+                if (currentModeTime > 0 && timeLeft <= 0) return;
+                nextQuestion();
+            }, 3500); // 3.5s delay
         }
     }
 
-    function removeFromMistakes(question) {
-        const index = wrongAnswers.findIndex(q => q.term === question.term);
-        if (index > -1) {
-            wrongAnswers.splice(index, 1);
-            updateMistakeBadge();
-            saveToStorage();
-        }
+    // --- 6. 輔助功能 ---
+    function startTimer() {
+        updateTimerUI();
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerUI();
+            if (timeLeft <= 0) endGame(true);
+        }, 1000);
     }
 
+    function updateTimerUI() {
+        const m = Math.floor(timeLeft / 60).toString().padStart(2,'0');
+        const s = (timeLeft % 60).toString().padStart(2,'0');
+        document.getElementById('timer-display').innerText = `${m}:${s}`;
+    }
+
+    function stopAllTimers() {
+        clearInterval(timerInterval);
+        clearTimeout(autoNextTimer);
+    }
+
+    function forceNext() {
+        stopAllTimers();
+        window.speechSynthesis.cancel();
+        if (currentModeTime > 0 && timeLeft <= 0) return;
+        nextQuestion();
+    }
+
+    function endGame(timeUp) {
+        stopAllTimers();
+        window.speechSynthesis.cancel();
+        
+        // Save Best Score
+        const stats = JSON.parse(localStorage.getItem('musicQuiz_stats_v6') || '{}');
+        const key = currentModeTime.toString();
+        if (score > (stats[key] || 0)) {
+            stats[key] = score;
+            localStorage.setItem('musicQuiz_stats_v6', JSON.stringify(stats));
+        }
+
+        document.getElementById('final-score').innerText = score;
+        showScreen('screen-result');
+    }
+
+    // Audio
+    function playCurrentTerm() {
+        if (!currentQuestion) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(currentQuestion.term);
+        u.lang = langMap[currentQuestion.lang] || 'en-US';
+        window.speechSynthesis.speak(u);
+    }
+
+    function playAudioSequence(q) {
+        window.speechSynthesis.cancel();
+        const u1 = new SpeechSynthesisUtterance(q.term);
+        u1.lang = langMap[q.lang] || 'en-US';
+        const u2 = new SpeechSynthesisUtterance("Means, " + q.en);
+        u2.lang = 'en-US';
+        u1.onend = () => { setTimeout(() => window.speechSynthesis.speak(u2), 400); };
+        window.speechSynthesis.speak(u1);
+    }
+
+    // Mistakes
+    function addToMistakes(q) {
+        if (!wrongAnswers.some(i => i.term === q.term)) {
+            wrongAnswers.push(q);
+            localStorage.setItem('musicQuiz_mistakes_v6', JSON.stringify(wrongAnswers));
+            updateMistakeBadge();
+        }
+    }
+    function removeFromMistakes(term) {
+        wrongAnswers = wrongAnswers.filter(i => i.term !== term);
+        localStorage.setItem('musicQuiz_mistakes_v6', JSON.stringify(wrongAnswers));
+        updateMistakeBadge();
+    }
     function updateMistakeBadge() {
-        const badge = document.getElementById('mistake-count');
-        badge.textContent = wrongAnswers.length;
-        badge.style.display = wrongAnswers.length > 0 ? 'block' : 'none';
+        const el = document.getElementById('mistake-count');
+        el.innerText = wrongAnswers.length;
+        el.style.display = wrongAnswers.length > 0 ? 'block' : 'none';
     }
 
-    function showSessionSummary() {
-        const duration = Math.round((Date.now() - statistics.startTime) / 1000);
-        const accuracy = statistics.totalQuestions > 0 
-            ? ((statistics.correctAnswers / statistics.totalQuestions) * 100).toFixed(1)
-            : 0;
-
-        statistics.sessionHistory.push({
-            date: new Date().toISOString(),
-            mode: isReviewMode ? 'review' : 'normal',
-            total: statistics.totalQuestions,
-            correct: statistics.correctAnswers,
-            accuracy: parseFloat(accuracy),
-            duration: duration
-        });
-        saveToStorage();
-
-        alert(`🎉 測驗完成！\n\n總題數: ${statistics.totalQuestions}\n答對: ${statistics.correctAnswers}\n正確率: ${accuracy}%\n用時: ${duration}秒`);
-        location.reload();
-    }
-
+    // UI Modals
     function openMistakesModal() {
-        const modal = document.getElementById('mistake-modal');
-        const listContainer = document.getElementById('mistakes-list');
-        const shareActions = document.getElementById('share-actions-area');
-
-        listContainer.innerHTML = ''; 
-
-        if (wrongAnswers.length === 0) {
-            listContainer.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">目前沒有錯題，太棒了！<br>No mistakes yet.</p>';
-            shareActions.style.display = 'none';
-        } else {
-            shareActions.style.display = 'flex';
-
-            const sortedMistakes = [...wrongAnswers].sort((a, b) => {
-                const countA = statistics.wrongCount[a.term] || 0;
-                const countB = statistics.wrongCount[b.term] || 0;
-                return countB - countA;
-            });
-
-            sortedMistakes.forEach(item => {
-                const errorCount = statistics.wrongCount[item.term] || 0;
+        const list = document.getElementById('mistakes-list');
+        list.innerHTML = '';
+        if (wrongAnswers.length === 0) list.innerHTML = '<p style="color:var(--text-sec); text-align:center;">No mistakes recorded.</p>';
+        else {
+            wrongAnswers.forEach(item => {
                 const div = document.createElement('div');
-                div.className = 'mistake-item';
-                div.innerHTML = `
-                    <span class="mistake-term">${item.term}</span> 
-                    <span class="mistake-def">${item.def}</span>
-                    ${errorCount > 1 ? `<span style="color:#e74c3c; font-size:12px; margin-left:8px;">✕${errorCount}</span>` : ''}
-                `;
-                listContainer.appendChild(div);
+                div.style.padding = '8px 0';
+                div.style.borderBottom = '1px solid var(--border)';
+                div.innerHTML = `<strong style="color:var(--error)">${item.term}</strong>: ${item.def}`;
+                list.appendChild(div);
             });
+        }
+        document.getElementById('mistake-modal').style.display = 'flex';
+    }
+    function closeMistakesModal() { document.getElementById('mistake-modal').style.display = 'none'; }
 
-            if (statistics.sessionHistory.length > 0) {
-                const statsDiv = document.createElement('div');
-                statsDiv.style.cssText = 'margin-top:20px; padding:15px; background:#f8f9fa; border-radius:8px; font-size:13px;';
-
-                const recentSessions = statistics.sessionHistory.slice(-5);
-                const avgAccuracy = (recentSessions.reduce((sum, s) => sum + s.accuracy, 0) / recentSessions.length).toFixed(1);
-
-                statsDiv.innerHTML = `
-                    <div style="font-weight:bold; margin-bottom:8px;">📊 統計資訊</div>
-                    <div>錯題總數: ${wrongAnswers.length}</div>
-                    <div>歷史測驗: ${statistics.sessionHistory.length} 次</div>
-                    <div>平均正確率: ${avgAccuracy}%</div>
-                `;
-                listContainer.appendChild(statsDiv);
+    // Import Data
+    function openImportModal() { document.getElementById('import-modal').style.display = 'flex'; }
+    function closeImportModal() { document.getElementById('import-modal').style.display = 'none'; }
+    
+    function processImport() {
+        try {
+            const raw = document.getElementById('import-text').value;
+            const newData = JSON.parse(raw);
+            if (!Array.isArray(newData) || !newData[0].term || !newData[0].def) {
+                alert("Invalid format! Must be an array of objects with 'term' and 'def'.");
+                return;
             }
-        }
-        modal.style.display = 'flex';
-    }
-
-    function closeMistakesModal() {
-        document.getElementById('mistake-modal').style.display = 'none';
-    }
-
-    function generateShareText() {
-        let text = "🎵 Music Terms Quiz - My Mistakes:\n\n";
-
-        const sortedMistakes = [...wrongAnswers].sort((a, b) => {
-            const countA = statistics.wrongCount[a.term] || 0;
-            const countB = statistics.wrongCount[b.term] || 0;
-            return countB - countA;
-        });
-
-        sortedMistakes.forEach(item => {
-            const errorCount = statistics.wrongCount[item.term] || 0;
-            text += `${item.term} (${item.lang}): ${item.def}`;
-            if (errorCount > 1) text += ` ✕${errorCount}`;
-            text += "\n";
-        });
-
-        if (statistics.sessionHistory.length > 0) {
-            const recent = statistics.sessionHistory[statistics.sessionHistory.length - 1];
-            text += `\n📊 最近測驗: ${recent.correct}/${recent.total} (${recent.accuracy}%)`;
-        }
-
-        text += "\n\nPowered by 豐狂出品 • 樂理隨身聽";
-        return text;
-    }
-
-    function shareToWhatsapp() {
-        if (wrongAnswers.length === 0) return;
-        const text = generateShareText();
-        window.location.href = "whatsapp://send?text=" + encodeURIComponent(text);
-    }
-
-    function copyToClipboard() {
-        if (wrongAnswers.length === 0) return;
-        const text = generateShareText();
-        navigator.clipboard.writeText(text).then(() => {
-            alert('已複製到剪貼簿！ (Copied to clipboard)');
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-        });
-    }
-
-    function shareSystem() {
-        if (wrongAnswers.length === 0) return;
-        const text = generateShareText();
-        if (navigator.share) {
-            navigator.share({
-                title: 'Music Quiz Mistakes',
-                text: text
-            }).catch(console.error);
-        } else {
-            alert("您的瀏覽器不支援系統分享，請使用複製功能。");
+            musicTerms = newData;
+            alert(`Success! Loaded ${newData.length} terms.`);
+            renderCategoryFilters(); // Re-render filters based on new data
+            closeImportModal();
+        } catch (e) {
+            alert("JSON Parse Error: " + e.message);
         }
     }
+    function resetData() {
+        musicTerms = JSON.parse(JSON.stringify(defaultData));
+        renderCategoryFilters();
+        alert("Restored default data.");
+        closeImportModal();
+    }
+
+    function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
 </script>
-
 </body>
 </html>
