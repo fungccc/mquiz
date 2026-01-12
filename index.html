@@ -127,12 +127,53 @@
         }
         .filter-title { font-weight: bold; margin-bottom: 10px; display: block; color: var(--text); font-size: 0.9rem; }
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        .filter-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .filter-actions { display: flex; gap: 8px; }
+        .filter-btn {
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .category-list { display: flex; flex-direction: column; gap: 10px; }
+        .category-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
         .checkbox-label {
             display: flex; align-items: center; gap: 5px; font-size: 0.9rem; cursor: pointer;
-            background: var(--card); padding: 5px 10px; border-radius: 20px; border: 1px solid var(--border);
-            color: var(--text);
+            background: rgba(0, 0, 0, 0.03); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--tag-color);
+            color: var(--text); font-weight: 600; --tag-color: var(--primary);
         }
-        .checkbox-label input { accent-color: var(--primary); }
+        .checkbox-label input { accent-color: var(--tag-color); }
+        .checkbox-label span { color: var(--tag-color); }
+        .only-btn {
+            border: none; background: rgba(0,0,0,0.08); color: var(--text);
+            padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; cursor: pointer;
+        }
+        .only-btn:hover { background: rgba(0,0,0,0.15); }
+
+        .practice-goals {
+            background: rgba(0,0,0,0.03);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+        .goals-header { font-weight: bold; margin-bottom: 10px; color: var(--text); font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
+        .goals-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .goal-tag {
+            padding: 6px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600;
+            border: 1px solid transparent; background: rgba(0,0,0,0.05); color: var(--text);
+        }
+        .goal-tag.tempo { background: rgba(46, 204, 113, 0.15); border-color: rgba(46, 204, 113, 0.5); color: #27ae60; }
+        .goal-tag.dynamics { background: rgba(52, 152, 219, 0.15); border-color: rgba(52, 152, 219, 0.5); color: #2980b9; }
+        .goal-tag.expression { background: rgba(243, 156, 18, 0.15); border-color: rgba(243, 156, 18, 0.5); color: #d68910; }
+        .goal-tag.structure { background: rgba(155, 89, 182, 0.15); border-color: rgba(155, 89, 182, 0.5); color: #8e44ad; }
+        .goal-tag.modifiers { background: rgba(26, 188, 156, 0.15); border-color: rgba(26, 188, 156, 0.5); color: #16a085; }
 
         /* 設定列 */
         .setting-row {
@@ -165,6 +206,15 @@
         
         .hidden-term {
             filter: blur(8px); user-select: none; opacity: 0.5; background: #ccc; color: transparent; border-radius: 5px; padding: 0 10px;
+        }
+        .question-media { margin: 15px 0; display: none; }
+        .question-media.active { display: block; }
+        .question-image {
+            max-width: 100%; max-height: 220px; object-fit: contain;
+            border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.03);
+        }
+        .question-musicxml {
+            border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: rgba(0,0,0,0.02);
         }
 
         /* 發音按鈕 (Order -1 讓它在左邊) */
@@ -290,6 +340,14 @@
         textarea { width: 100%; height: 80px; padding: 10px; box-sizing: border-box; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-family: monospace; font-size: 12px; resize: vertical; }
         .url-input-group { display: flex; gap: 5px; }
         .url-input-group input { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); }
+        .data-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .data-tab {
+            flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+            background: rgba(0,0,0,0.03); font-weight: bold; cursor: pointer; font-size: 0.85rem;
+        }
+        .data-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .data-panel { display: none; }
+        .data-panel.active { display: block; }
 
     </style>
 </head>
@@ -302,11 +360,31 @@
     <div id="screen-home">
         <h1>Music Terms Ultimate</h1>
         <p class="subtitle">Full Version V8.1</p>
-        
+
+        <div class="practice-goals">
+            <div class="goals-header">🎯 練習目標 (Practice Goals)</div>
+            <div class="goals-list">
+                <span class="goal-tag tempo">A. 速度 (Tempo)</span>
+                <span class="goal-tag dynamics">B. 力度 (Dynamics)</span>
+                <span class="goal-tag expression">C. 表情 (Expression)</span>
+                <span class="goal-tag structure">D. 結構/演奏法</span>
+                <span class="goal-tag modifiers">E. 修飾詞 (Modifiers)</span>
+                <span class="goal-tag">F. 樂器 (Instruments)</span>
+                <span class="goal-tag">G. 聲部 (Voices)</span>
+                <span class="goal-tag">H. 譜號 (Clefs)</span>
+                <span class="goal-tag">I. 樂器家族</span>
+                <span class="goal-tag">J. 其他生字</span>
+            </div>
+        </div>
+
         <div class="category-filter">
-            <span class="filter-title">🏷️ Select Categories (分類練習):</span>
-            <div class="checkbox-group" id="category-checkboxes">
+            <div class="filter-header">
+                <span class="filter-title">🏷️ Select Categories (分類練習)</span>
+                <div class="filter-actions">
+                    <button class="filter-btn" onclick="toggleAllCategories()">Toggle All</button>
                 </div>
+            </div>
+            <div class="category-list" id="category-checkboxes"></div>
         </div>
 
         <button class="btn" style="background-color: #8e44ad;" onclick="startListenMode()">🎧 懶人聽書模式 (Auto Play)</button>
@@ -314,6 +392,8 @@
         <button class="btn" onclick="selectTime(300)">⏱️ 5 分鐘挑戰</button>
         <button class="btn" onclick="selectTime(900)">⏱️ 15 分鐘挑戰</button>
         <button class="btn btn-outline" onclick="selectTime(-1)">♾️ 不限時練習</button>
+
+        <button class="btn btn-outline" style="margin-top:15px;" onclick="openImportModal()" id="data-manager-btn">📂 Data Manager</button>
         
         <div style="margin-top: 20px; font-size: 0.9rem; color: var(--text-sec);">
             High Score (5m): <span id="home-best-5m" style="color:var(--primary)">0</span>
@@ -350,7 +430,7 @@
         </div>
         <div class="stats">
             <div class="score-display" id="score-display">✅ 0</div>
-            <div id="progress-text" style="color:var(--text-sec)">Q: 1</div>
+            <div id="progress-text" style="color:var(--text-sec)">Q 0 / 0</div>
         </div>
         <div class="progress-bar-wrapper">
             <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%"></div>
@@ -361,6 +441,10 @@
                 <button onclick="playCurrentTerm()" class="audio-btn" id="quiz-audio-btn">🔊</button>
             </div>
             <span id="question-ipa" class="term-ipa"></span>
+        </div>
+        <div class="question-media" id="question-media">
+            <img id="question-image" class="question-image" alt="Question visual">
+            <div id="question-musicxml" class="question-musicxml"></div>
         </div>
         <div id="options-container"></div>
         <div id="feedback-area" class="feedback">
@@ -391,6 +475,7 @@
         <h1>Finished!</h1>
         <div style="font-size: 4rem; font-weight: bold; color: var(--primary);" id="final-score">0</div>
         <p style="color: var(--text-sec);">Correct Answers</p>
+        <div style="margin-top:10px; color:var(--text-sec);" id="final-progress"></div>
         <button class="btn" onclick="goHome()">🏠 Home</button>
         <button class="btn btn-outline" onclick="openMistakesModal()">📝 Mistakes</button>
     </div>
@@ -400,17 +485,43 @@
     <button class="fab-btn" onclick="openMistakesModal()"><span class="badge" id="mistake-count">0</span>📝</button>
 </div>
 
-<div class="footer-tools"><button class="tool-btn" onclick="openImportModal()">📥 Import Data</button></div>
 <div class="footer-credit">豐狂出品 • 樂理隨身聽 </div>
 
 <div class="modal-overlay" id="import-modal">
     <div class="modal-content">
-        <h3>Import Custom JSON</h3>
-        <p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:15px;">Choose one method to import.</p>
-        <div class="import-section"><label>📂 Option 1: File</label><input type="file" id="import-file" accept=".json" onchange="importFromFile()"></div>
-        <div class="import-section"><label>🔗 Option 2: URL</label><div class="url-input-group"><input type="text" id="import-url" placeholder="https://..."><button class="btn" style="width:auto; margin:0; padding:8px 15px;" onclick="importFromUrl()">Fetch</button></div></div>
-        <div class="import-section"><label>📝 Option 3: Text</label><textarea id="import-text" placeholder='[{"term":"allegro","cat":"Tempo","ipa":"","def":"快板","lang":"Italian","en":"Fast"}]'></textarea><button class="btn" style="margin-top:10px;" onclick="processTextImport()">Load Text</button></div>
-        <div style="margin-top:15px; display:flex; gap:10px;"><button class="btn btn-outline" onclick="closeImportModal()">Cancel</button><button class="btn btn-outline" style="border-color:var(--error); color:var(--error);" onclick="resetData()">↺ Reset</button></div>
+        <h3>Data Manager</h3>
+        <p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:15px;">📝 JSON輸入 / 📁 檔案上傳 / 🌐 URL匯入</p>
+        <div class="data-tabs">
+            <button class="data-tab active" data-tab="text" onclick="switchDataTab('text')">📝 文字</button>
+            <button class="data-tab" data-tab="file" onclick="switchDataTab('file')">📁 檔案</button>
+            <button class="data-tab" data-tab="url" onclick="switchDataTab('url')">🌐 URL</button>
+        </div>
+        <div class="data-panel active" id="data-panel-text">
+            <div class="import-section">
+                <label>📝 JSON輸入</label>
+                <textarea id="import-text" placeholder='[{"term":"allegro","cat":"Tempo","ipa":"","def":"快板","lang":"Italian","en":"Fast"}]'></textarea>
+                <button class="btn" style="margin-top:10px;" onclick="processTextImport()">Load Text</button>
+            </div>
+        </div>
+        <div class="data-panel" id="data-panel-file">
+            <div class="import-section">
+                <label>📁 檔案上傳 (.json)</label>
+                <input type="file" id="import-file" accept=".json" onchange="importFromFile()">
+            </div>
+        </div>
+        <div class="data-panel" id="data-panel-url">
+            <div class="import-section">
+                <label>🌐 URL匯入</label>
+                <div class="url-input-group">
+                    <input type="text" id="import-url" placeholder="https://...">
+                    <button class="btn" style="width:auto; margin:0; padding:8px 15px;" onclick="importFromUrl()">讀取 (Load)</button>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:15px; display:flex; gap:10px;">
+            <button class="btn btn-outline" onclick="resetData()" style="border-color:var(--error); color:var(--error);">↺ 重置</button>
+            <button class="btn btn-outline" onclick="closeImportModal()">關閉</button>
+        </div>
     </div>
 </div>
 
@@ -432,6 +543,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.8.6/build/opensheetmusicdisplay.min.js"></script>
 <script>
     // --- 完整 135 題資料庫 ---
     const defaultData = [
@@ -590,9 +702,26 @@
     ];
 
     const langMap = { "Italian": "it-IT", "German": "de-DE", "French": "fr-FR", "English": "en-US", "Latin": "it-IT" };
+    const categoryDefinitions = [
+        { key: "Tempo", label: "速度 Tempo", color: "#2ecc71" },
+        { key: "Dynamics", label: "力度 Dynamics", color: "#3498db" },
+        { key: "Expression", label: "表情 Expression", color: "#f39c12" },
+        { key: "Structure/Technique", label: "結構/演奏法", color: "#9b59b6" },
+        { key: "Modifiers", label: "修飾詞 Modifiers", color: "#1abc9c" }
+    ];
+    const categoryAliases = {
+        "Tempo": "Tempo",
+        "Dynamics": "Dynamics",
+        "Expression": "Expression",
+        "Structure": "Structure/Technique",
+        "Technique": "Structure/Technique",
+        "Keywords": "Modifiers",
+        "Modifiers": "Modifiers",
+        "General": "Modifiers"
+    };
     
     // --- 變數 ---
-    let musicTerms = JSON.parse(JSON.stringify(defaultData)); 
+    let musicTerms = [];
     let currentPool = [];
     let currentQuestion = null;
     let wrongAnswers = [];
@@ -605,6 +734,7 @@
     let autoNextTimer = null;
     let score = 0;
     let questionCount = 0;
+    let totalQuestions = 0;
     let isAnswering = false;
 
     // --- 聽書模式變數 ---
@@ -617,6 +747,7 @@
     window.onload = function() {
         initTheme();
         loadStoredData();
+        musicTerms = normalizeTermData(defaultData);
         renderCategoryFilters();
     };
 
@@ -643,15 +774,32 @@
     }
 
     function renderCategoryFilters() {
-        const cats = [...new Set(musicTerms.map(i => i.cat || 'General'))].sort();
         const container = document.getElementById('category-checkboxes');
         container.innerHTML = '';
-        cats.forEach(c => {
-            const label = document.createElement('label');
-            label.className = 'checkbox-label';
-            label.innerHTML = `<input type="checkbox" value="${c}" checked> ${c}`;
-            container.appendChild(label);
+        categoryDefinitions.forEach(c => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'category-item';
+            wrapper.innerHTML = `
+                <label class="checkbox-label" style="--tag-color:${c.color}">
+                    <input type="checkbox" value="${c.key}" checked>
+                    <span>${c.label}</span>
+                </label>
+                <button class="only-btn" type="button">只選</button>
+            `;
+            wrapper.querySelector('.only-btn').onclick = () => selectOnlyCategory(c.key);
+            container.appendChild(wrapper);
         });
+    }
+
+    function toggleAllCategories() {
+        const checkboxes = document.querySelectorAll('#category-checkboxes input[type="checkbox"]');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => { cb.checked = !allChecked; });
+    }
+
+    function selectOnlyCategory(categoryKey) {
+        const checkboxes = document.querySelectorAll('#category-checkboxes input[type="checkbox"]');
+        checkboxes.forEach(cb => { cb.checked = cb.value === categoryKey; });
     }
 
     function getSelectedCategories() {
@@ -667,8 +815,13 @@
         document.getElementById(id).classList.remove('hidden');
         
         const fab = document.getElementById('fab-mistakes');
-        if(id === 'screen-home') fab.classList.remove('hidden');
-        else fab.classList.add('hidden');
+        if(id === 'screen-home') {
+            fab.classList.remove('hidden');
+            document.getElementById('data-manager-btn').classList.remove('hidden');
+        } else {
+            fab.classList.add('hidden');
+            document.getElementById('data-manager-btn').classList.add('hidden');
+        }
     }
 
     function selectTime(seconds) {
@@ -686,7 +839,7 @@
     function startGame(lang) {
         const selectedCats = getSelectedCategories();
         if (selectedCats.length === 0) return alert("Please select a category!");
-        currentPool = musicTerms.filter(t => selectedCats.includes(t.cat || 'General'));
+        currentPool = musicTerms.filter(t => selectedCats.includes(t.category));
         if (currentPool.length < 4) return alert("Not enough terms selected.");
         currentLang = lang;
         isDictation = document.getElementById('dictation-toggle').checked;
@@ -696,7 +849,7 @@
 
     function startReviewMode() {
         if (wrongAnswers.length === 0) return;
-        currentPool = wrongAnswers; 
+        currentPool = wrongAnswers.slice(); 
         currentLang = 'zh'; isDictation = false; isReviewMode = true; currentModeTime = -1;
         closeMistakesModal(); startQuizLogic();
     }
@@ -705,6 +858,9 @@
         score = 0; questionCount = 0;
         document.getElementById('score-display').innerText = `✅ 0`;
         document.getElementById('progress-bar-fill').style.width = '0%';
+        totalQuestions = currentPool.length;
+        document.getElementById('progress-text').innerText = `Q 0 / ${totalQuestions}`;
+        document.getElementById('final-progress').innerText = '';
         if (currentModeTime > 0) { timeLeft = currentModeTime; startTimer(); } 
         else { document.getElementById('timer-display').innerText = "∞"; }
         showScreen('screen-quiz'); nextQuestion();
@@ -714,7 +870,7 @@
     function startListenMode() {
         const selectedCats = getSelectedCategories();
         if (selectedCats.length === 0) return alert("Please select a category!");
-        listenQueue = musicTerms.filter(t => selectedCats.includes(t.cat || 'General'));
+        listenQueue = musicTerms.filter(t => selectedCats.includes(t.category));
         listenQueue.sort(() => Math.random() - 0.5); 
         if (listenQueue.length === 0) return alert("No terms found.");
         listenIndex = 0; isListenPaused = false;
@@ -737,18 +893,38 @@
         window.speechSynthesis.cancel();
 
         const u1 = new SpeechSynthesisUtterance(item.term);
-        u1.lang = langMap[item.lang] || 'en-US';
+        u1.lang = langMap[item.lang] || 'it-IT';
         u1.rate = 0.9;
 
         const u2 = new SpeechSynthesisUtterance(item.en);
         u2.lang = 'en-US';
+        u2.rate = 0.85;
         
         const u3 = new SpeechSynthesisUtterance(item.def);
         u3.lang = 'zh-TW';
+        u3.rate = 0.8;
 
-        u1.onend = () => { if (isListenPaused) return; listenTimeouts.push(setTimeout(() => { document.getElementById('listen-en').innerText = item.en; window.speechSynthesis.speak(u2); }, 500)); };
-        u2.onend = () => { if (isListenPaused) return; listenTimeouts.push(setTimeout(() => { document.getElementById('listen-zh').innerText = item.def; window.speechSynthesis.speak(u3); }, 500)); };
-        u3.onend = () => { if (isListenPaused) return; listenTimeouts.push(setTimeout(() => { listenIndex++; playNextListenItem(); }, 2000)); };
+        u1.onend = () => {
+            if (isListenPaused) return;
+            listenTimeouts.push(setTimeout(() => {
+                document.getElementById('listen-en').innerText = item.en;
+                window.speechSynthesis.speak(u2);
+            }, 500));
+        };
+        u2.onend = () => {
+            if (isListenPaused) return;
+            listenTimeouts.push(setTimeout(() => {
+                document.getElementById('listen-zh').innerText = item.def;
+                window.speechSynthesis.speak(u3);
+            }, 500));
+        };
+        u3.onend = () => {
+            if (isListenPaused) return;
+            listenTimeouts.push(setTimeout(() => {
+                listenIndex++;
+                playNextListenItem();
+            }, 2000));
+        };
 
         window.speechSynthesis.speak(u1);
     }
@@ -796,11 +972,12 @@
         currentQuestion = currentPool[idx];
         questionCount++;
 
-        document.getElementById('progress-text').innerText = `Q: ${questionCount}`;
+        document.getElementById('progress-text').innerText = `Q ${questionCount} / ${totalQuestions}`;
         const termEl = document.getElementById('question-term');
         const ipaEl = document.getElementById('question-ipa');
         termEl.innerText = capitalize(currentQuestion.term);
         ipaEl.innerText = currentQuestion.ipa ? `[ ${currentQuestion.ipa} ]` : '';
+        renderQuestionMedia(currentQuestion);
 
         if (isDictation) {
             termEl.classList.add('hidden-term'); ipaEl.classList.add('hidden');
@@ -892,6 +1069,8 @@
         const key = currentModeTime.toString();
         if (score > (stats[key] || 0)) { stats[key] = score; localStorage.setItem('musicQuiz_stats_v6', JSON.stringify(stats)); }
         document.getElementById('final-score').innerText = score;
+        const pct = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+        document.getElementById('final-progress').innerText = `${score} / ${totalQuestions} (${pct}%)`;
         showScreen('screen-result');
     }
 
@@ -952,15 +1131,59 @@
     }
 
     // --- 匯入功能 ---
-    function openImportModal() { document.getElementById('import-modal').style.display = 'flex'; }
+    function openImportModal() { document.getElementById('import-modal').style.display = 'flex'; switchDataTab('text'); }
     function closeImportModal() { document.getElementById('import-modal').style.display = 'none'; }
     function importFromFile() { const file = document.getElementById('import-file').files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { validateAndLoad(JSON.parse(e.target.result)); } catch(err) { alert("Error: " + err.message); } }; reader.readAsText(file); }
     async function importFromUrl() { const url = document.getElementById('import-url').value.trim(); if(!url) return; try { const res = await fetch(url); if(!res.ok) throw new Error("Net Error"); validateAndLoad(await res.json()); } catch(err) { alert("Failed: " + err.message); } }
     function processTextImport() { try { validateAndLoad(JSON.parse(document.getElementById('import-text').value)); } catch (e) { alert("Error: " + e.message); } }
-    function validateAndLoad(d) { if (!Array.isArray(d) || !d[0].term) return alert("Invalid JSON"); musicTerms = d; alert(`Loaded ${d.length} terms.`); renderCategoryFilters(); closeImportModal(); }
-    function resetData() { musicTerms = JSON.parse(JSON.stringify(defaultData)); renderCategoryFilters(); alert("Reset Done."); closeImportModal(); }
+    function validateAndLoad(d) { if (!Array.isArray(d) || !d[0].term) return alert("Invalid JSON"); musicTerms = normalizeTermData(d); alert(`Loaded ${d.length} terms.`); renderCategoryFilters(); closeImportModal(); }
+    function resetData() { musicTerms = normalizeTermData(defaultData); renderCategoryFilters(); alert("Reset Done."); closeImportModal(); }
     
     function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    function normalizeCategory(cat) {
+        if (!cat) return "Modifiers";
+        return categoryAliases[cat] || "Modifiers";
+    }
+
+    function normalizeTermData(list) {
+        return list.map(item => ({ ...item, category: normalizeCategory(item.cat) }));
+    }
+
+    function switchDataTab(tabKey) {
+        document.querySelectorAll('.data-tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.data-panel').forEach(panel => panel.classList.remove('active'));
+        document.querySelector(`.data-tab[data-tab="${tabKey}"]`)?.classList.add('active');
+        document.getElementById(`data-panel-${tabKey}`).classList.add('active');
+    }
+
+    function renderQuestionMedia(item) {
+        const media = document.getElementById('question-media');
+        const imageEl = document.getElementById('question-image');
+        const xmlEl = document.getElementById('question-musicxml');
+        const imageUrl = item.image || item.img || item.imageUrl || '';
+        const musicXml = item.musicxml || '';
+
+        imageEl.style.display = 'none';
+        xmlEl.innerHTML = '';
+        xmlEl.style.display = 'none';
+        media.classList.remove('active');
+
+        if (imageUrl) {
+            imageEl.src = imageUrl;
+            imageEl.style.display = 'block';
+            media.classList.add('active');
+        }
+
+        if (musicXml && window.opensheetmusicdisplay) {
+            xmlEl.style.display = 'block';
+            media.classList.add('active');
+            const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(xmlEl, { autoResize: true, drawTitle: false });
+            osmd.load(musicXml).then(() => osmd.render()).catch(() => {
+                xmlEl.innerText = "MusicXML render failed.";
+            });
+        }
+    }
 
 </script>
 </body>
