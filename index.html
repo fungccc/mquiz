@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Terms Ultimate V8.1</title>
+    <title>Music Terms Ultimate V8.4</title>
     <style>
         :root {
-            /* 淺色模式 */
+            /* 淺色模式 (Light Mode) */
             --primary: #4A90E2;
             --primary-hover: #357abd;
             --success: #2ECC71;
@@ -21,11 +21,14 @@
             --option-bg: #ffffff;
             --option-hover: #f0f7ff;
             --input-bg: #ffffff;
-            --listen-bg: #2c3e50;
-            --listen-text: #ecf0f1;
+            
+            /* 聽書模式專用 - 淺色設定 */
+            --listen-bg: #ffffff;
+            --listen-text: #2c3e50;
+            --listen-sub: #7f8c8d;
         }
 
-        /* 深色模式 */
+        /* 深色模式 (Dark Mode) */
         [data-theme="dark"] {
             --primary: #5d9cec;
             --primary-hover: #4a89dc;
@@ -41,6 +44,11 @@
             --option-bg: #2d3748;
             --option-hover: #4a5568;
             --input-bg: #1a202c;
+
+            /* 聽書模式專用 - 深色設定 (保持原本的深藍風格) */
+            --listen-bg: #2c3e50;
+            --listen-text: #ecf0f1;
+            --listen-sub: #bdc3c7;
         }
 
         body {
@@ -125,14 +133,50 @@
             text-align: left;
             border: 1px solid var(--border);
         }
-        .filter-title { font-weight: bold; margin-bottom: 10px; display: block; color: var(--text); font-size: 0.9rem; }
-        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
-        .checkbox-label {
-            display: flex; align-items: center; gap: 5px; font-size: 0.9rem; cursor: pointer;
-            background: var(--card); padding: 5px 10px; border-radius: 20px; border: 1px solid var(--border);
+        .filter-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .filter-title { font-weight: bold; display: block; color: var(--text); font-size: 0.95rem; }
+        .filter-actions { display: flex; gap: 8px; }
+        .filter-btn {
+            border: 1px solid var(--border);
+            background: var(--card);
             color: var(--text);
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .checkbox-label input { accent-color: var(--primary); }
+        .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+        
+        /* 分類列表樣式優化 */
+        .category-list { display: flex; flex-direction: column; gap: 8px; }
+        .category-item { 
+            display: flex; align-items: center; justify-content: space-between; gap: 10px; 
+            padding: 8px 12px; border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: transform 0.1s;
+        }
+        .category-item:hover { transform: scale(1.01); }
+
+        .checkbox-label {
+            display: flex; align-items: center; gap: 10px; font-size: 0.95rem; cursor: pointer;
+            color: #2c3e50; font-weight: 600; flex: 1;
+        }
+        /* 在深色模式下，確保分類文字可讀 */
+        [data-theme="dark"] .checkbox-label { color: #2c3e50; } 
+
+        .checkbox-label input { accent-color: var(--fab-color); width: 18px; height: 18px; }
+        .count-badge {
+            font-size: 0.75rem; background: rgba(255,255,255,0.5); 
+            padding: 2px 8px; border-radius: 10px; color: #444; font-family: monospace; border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .only-btn {
+            border: none; background: rgba(255,255,255,0.5); color: #333;
+            padding: 5px 12px; border-radius: 999px; font-size: 0.75rem; cursor: pointer;
+            font-weight: bold;
+        }
+        .only-btn:hover { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
         /* 設定列 */
         .setting-row {
@@ -150,11 +194,12 @@
         }
         .timer-badge { font-weight: bold; font-family: monospace; font-size: 1.2rem; color: var(--primary); }
 
-        /* 夜間模式開關 */
+        /* 夜間模式開關 (修正層級問題) */
         .theme-toggle {
             position: fixed; top: 20px; right: 20px;
             background: none; border: none; font-size: 1.5rem; cursor: pointer;
-            color: var(--text); transition: transform 0.3s; z-index: 100;
+            color: var(--text); transition: transform 0.3s; 
+            z-index: 300; /* 確保高於 Listen Screen */
         }
         .theme-toggle:hover { transform: rotate(20deg); }
 
@@ -166,8 +211,17 @@
         .hidden-term {
             filter: blur(8px); user-select: none; opacity: 0.5; background: #ccc; color: transparent; border-radius: 5px; padding: 0 10px;
         }
+        .question-media { margin: 15px 0; display: none; }
+        .question-media.active { display: block; }
+        .question-image {
+            max-width: 100%; max-height: 220px; object-fit: contain;
+            border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.03);
+        }
+        .question-musicxml {
+            border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: rgba(0,0,0,0.02);
+        }
 
-        /* 發音按鈕 (Order -1 讓它在左邊) */
+        /* 發音按鈕 */
         .audio-btn {
             background: none; border: 2px solid var(--border); color: var(--primary);
             border-radius: 50%; width: 40px; height: 40px;
@@ -203,17 +257,18 @@
             color: var(--text-sec);
         }
 
-        /* 🎧 聽書模式專用樣式 */
+        /* 🎧 聽書模式專用樣式 (修復背景顏色問題) */
         #screen-listen {
-            background: var(--listen-bg);
-            color: var(--listen-text);
+            background: var(--listen-bg); /* 使用變數 */
+            color: var(--listen-text);    /* 使用變數 */
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 200; /* 蓋在最上面 */
+            z-index: 200; 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             padding: 20px; box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s; /* 加入過渡效果 */
         }
-        .listen-word { font-size: 3.5rem; font-weight: bold; margin-bottom: 10px; color: #fff; }
-        .listen-ipa { font-size: 1.2rem; color: #bdc3c7; margin-bottom: 30px; font-family: monospace; }
+        .listen-word { font-size: 3.5rem; font-weight: bold; margin-bottom: 10px; color: var(--listen-text); }
+        .listen-ipa { font-size: 1.2rem; color: var(--listen-sub); margin-bottom: 30px; font-family: monospace; }
         .listen-meaning-en { font-size: 1.5rem; color: #3498db; margin-bottom: 10px; font-weight: bold; min-height: 1.5em; }
         .listen-meaning-zh { font-size: 2rem; color: #2ecc71; margin-bottom: 40px; font-weight: bold; min-height: 1.5em; }
         .listen-controls { display: flex; gap: 20px; width: 100%; max-width: 400px; }
@@ -290,6 +345,14 @@
         textarea { width: 100%; height: 80px; padding: 10px; box-sizing: border-box; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-family: monospace; font-size: 12px; resize: vertical; }
         .url-input-group { display: flex; gap: 5px; }
         .url-input-group input { flex: 1; padding: 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); }
+        .data-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .data-tab {
+            flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+            background: rgba(0,0,0,0.03); font-weight: bold; cursor: pointer; font-size: 0.85rem;
+        }
+        .data-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .data-panel { display: none; }
+        .data-panel.active { display: block; }
 
     </style>
 </head>
@@ -301,11 +364,16 @@
     
     <div id="screen-home">
         <h1>Music Terms Ultimate</h1>
-        <p class="subtitle">Full Version V8.1</p>
-        
+        <p class="subtitle">Full Version V8.4</p>
+
         <div class="category-filter">
-            <span class="filter-title">🏷️ Select Categories (分類練習):</span>
-            <div class="checkbox-group" id="category-checkboxes">
+            <div class="filter-header">
+                <span class="filter-title">🎯 Select Categories (分類練習)</span>
+                <div class="filter-actions">
+                    <button class="filter-btn" onclick="toggleAllCategories()">Toggle All</button>
+                </div>
+            </div>
+            <div class="category-list" id="category-checkboxes">
                 </div>
         </div>
 
@@ -314,6 +382,8 @@
         <button class="btn" onclick="selectTime(300)">⏱️ 5 分鐘挑戰</button>
         <button class="btn" onclick="selectTime(900)">⏱️ 15 分鐘挑戰</button>
         <button class="btn btn-outline" onclick="selectTime(-1)">♾️ 不限時練習</button>
+
+        <button class="btn btn-outline" style="margin-top:15px;" onclick="openImportModal()" id="data-manager-btn">📂 Data Manager</button>
         
         <div style="margin-top: 20px; font-size: 0.9rem; color: var(--text-sec);">
             High Score (5m): <span id="home-best-5m" style="color:var(--primary)">0</span>
@@ -350,7 +420,7 @@
         </div>
         <div class="stats">
             <div class="score-display" id="score-display">✅ 0</div>
-            <div id="progress-text" style="color:var(--text-sec)">Q: 1</div>
+            <div id="progress-text" style="color:var(--text-sec)">Q 0 / 0</div>
         </div>
         <div class="progress-bar-wrapper">
             <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%"></div>
@@ -359,8 +429,13 @@
             <div class="term-display">
                 <span id="question-term">Term</span>
                 <button onclick="playCurrentTerm()" class="audio-btn" id="quiz-audio-btn">🔊</button>
+<button onclick="playCurrentTerm(0.5)" class="audio-btn small-btn">🐢</button>
             </div>
             <span id="question-ipa" class="term-ipa"></span>
+        </div>
+        <div class="question-media" id="question-media">
+            <img id="question-image" class="question-image" alt="Question visual">
+            <div id="question-musicxml" class="question-musicxml"></div>
         </div>
         <div id="options-container"></div>
         <div id="feedback-area" class="feedback">
@@ -391,6 +466,7 @@
         <h1>Finished!</h1>
         <div style="font-size: 4rem; font-weight: bold; color: var(--primary);" id="final-score">0</div>
         <p style="color: var(--text-sec);">Correct Answers</p>
+        <div style="margin-top:10px; color:var(--text-sec);" id="final-progress"></div>
         <button class="btn" onclick="goHome()">🏠 Home</button>
         <button class="btn btn-outline" onclick="openMistakesModal()">📝 Mistakes</button>
     </div>
@@ -400,17 +476,43 @@
     <button class="fab-btn" onclick="openMistakesModal()"><span class="badge" id="mistake-count">0</span>📝</button>
 </div>
 
-<div class="footer-tools"><button class="tool-btn" onclick="openImportModal()">📥 Import Data</button></div>
 <div class="footer-credit">豐狂出品 • 樂理隨身聽 </div>
 
 <div class="modal-overlay" id="import-modal">
     <div class="modal-content">
-        <h3>Import Custom JSON</h3>
-        <p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:15px;">Choose one method to import.</p>
-        <div class="import-section"><label>📂 Option 1: File</label><input type="file" id="import-file" accept=".json" onchange="importFromFile()"></div>
-        <div class="import-section"><label>🔗 Option 2: URL</label><div class="url-input-group"><input type="text" id="import-url" placeholder="https://..."><button class="btn" style="width:auto; margin:0; padding:8px 15px;" onclick="importFromUrl()">Fetch</button></div></div>
-        <div class="import-section"><label>📝 Option 3: Text</label><textarea id="import-text" placeholder='[{"term":"allegro","cat":"Tempo","ipa":"","def":"快板","lang":"Italian","en":"Fast"}]'></textarea><button class="btn" style="margin-top:10px;" onclick="processTextImport()">Load Text</button></div>
-        <div style="margin-top:15px; display:flex; gap:10px;"><button class="btn btn-outline" onclick="closeImportModal()">Cancel</button><button class="btn btn-outline" style="border-color:var(--error); color:var(--error);" onclick="resetData()">↺ Reset</button></div>
+        <h3>Data Manager</h3>
+        <p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:15px;">📝 JSON輸入 / 📁 檔案上傳 / 🌐 URL匯入</p>
+        <div class="data-tabs">
+            <button class="data-tab active" data-tab="text" onclick="switchDataTab('text')">📝 文字</button>
+            <button class="data-tab" data-tab="file" onclick="switchDataTab('file')">📁 檔案</button>
+            <button class="data-tab" data-tab="url" onclick="switchDataTab('url')">🌐 URL</button>
+        </div>
+        <div class="data-panel active" id="data-panel-text">
+            <div class="import-section">
+                <label>📝 JSON輸入</label>
+                <textarea id="import-text" placeholder='[{"term":"allegro","cat":"Tempo","ipa":"","def":"快板","lang":"Italian","en":"Fast"}]'></textarea>
+                <button class="btn" style="margin-top:10px;" onclick="processTextImport()">Load Text</button>
+            </div>
+        </div>
+        <div class="data-panel" id="data-panel-file">
+            <div class="import-section">
+                <label>📁 檔案上傳 (.json)</label>
+                <input type="file" id="import-file" accept=".json" onchange="importFromFile()">
+            </div>
+        </div>
+        <div class="data-panel" id="data-panel-url">
+            <div class="import-section">
+                <label>🌐 URL匯入</label>
+                <div class="url-input-group">
+                    <input type="text" id="import-url" placeholder="https://...">
+                    <button class="btn" style="width:auto; margin:0; padding:8px 15px;" onclick="importFromUrl()">讀取 (Load)</button>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:15px; display:flex; gap:10px;">
+            <button class="btn btn-outline" onclick="resetData()" style="border-color:var(--error); color:var(--error);">↺ 重置</button>
+            <button class="btn btn-outline" onclick="closeImportModal()">關閉</button>
+        </div>
     </div>
 </div>
 
@@ -432,8 +534,9 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.8.6/build/opensheetmusicdisplay.min.js"></script>
 <script>
-    // --- 完整 135 題資料庫 ---
+    // --- 完整資料庫 ---
     const defaultData = [
         { "term": "accelerando", "cat": "Tempo", "ipa": "/at.tʃe.leˈran.do/", "def": "漸快", "lang": "Italian", "en": "Gradually faster", "canto": "Ah-Che-Le-Raan-Do", "mando": "Ā-Qiè-Léi-Ruǎn-Duō" },
         { "term": "adagietto", "cat": "Tempo", "ipa": "/a.daˈdʒet.to/", "def": "小柔板 (比柔板稍快)", "lang": "Italian", "en": "Rather slow", "canto": "Ah-Daa-Jet-Toe", "mando": "Ā-Dá-Jiē-Tōu" },
@@ -443,156 +546,28 @@
         { "term": "agitato", "cat": "Expression", "ipa": "/a.dʒiˈta.to/", "def": "激動地", "lang": "Italian", "en": "Agitated", "canto": "Ah-Ji-Taa-Toe", "mando": "Ā-Jí-Tǎ-Tōu" },
         { "term": "alla breve", "cat": "Structure", "ipa": "/ˈal.la ˈbrɛ.ve/", "def": "二二拍 (切分拍)", "lang": "Italian", "en": "Cut common time", "canto": "Ah-La Bre-Ve", "mando": "Ā-Lā Bu-Réi-Vēi" },
         { "term": "alla marcia", "cat": "Structure", "ipa": "/ˈal.la ˈmar.tʃa/", "def": "進行曲風格", "lang": "Italian", "en": "In the style of a march", "canto": "Ah-La Maa-Cha", "mando": "Ā-Lā Mǎ-Qià" },
-        { "term": "allargando", "cat": "Tempo", "ipa": "/al.larˈɡan.do/", "def": "漸寬廣 (漸慢且漸強)", "lang": "Italian", "en": "Broadening", "canto": "Ah-Lar-Gaan-Do", "mando": "Ā-Lā-Gǎn-Duō" },
-        { "term": "allegretto", "cat": "Tempo", "ipa": "/al.leˈɡret.to/", "def": "小快板", "lang": "Italian", "en": "Fairly fast", "canto": "Ah-Le-Gret-Toe", "mando": "Ā-Léi-Guěi-Tōu" },
-        { "term": "allegro", "cat": "Tempo", "ipa": "/alˈle.ɡro/", "def": "快板", "lang": "Italian", "en": "Fast, lively", "canto": "Ah-Le-Gro", "mando": "Ā-Léi-Guō" },
-        { "term": "amabile", "cat": "Expression", "ipa": "/aˈma.bi.le/", "def": "可愛地/和藹地", "lang": "Italian", "en": "Amiable", "canto": "Ah-Maa-Bi-Lay", "mando": "Ā-Mǎ-Bǐ-Léi" },
-        { "term": "amoroso", "cat": "Expression", "ipa": "/a.moˈro.zo/", "def": "溫柔地/充滿愛意", "lang": "Italian", "en": "Loving", "canto": "Ah-Mo-Ro-So", "mando": "Ā-Mó-Luō-Suō" },
-        { "term": "andante", "cat": "Tempo", "ipa": "/anˈdan.te/", "def": "行板 (行走速度)", "lang": "Italian", "en": "Walking pace", "canto": "An-Daan-Tay", "mando": "Ān-Dàn-Tēi" },
-        { "term": "andantino", "cat": "Tempo", "ipa": "/an.danˈti.no/", "def": "小行板 (比行板稍快/慢)", "lang": "Italian", "en": "Slightly faster/slower than Andante", "canto": "An-Daan-Ti-No", "mando": "Ān-Dàn-Tī-Nuò" },
-        { "term": "a niente", "cat": "Dynamics", "ipa": "/a ˈnjɛn.te/", "def": "漸弱至無聲", "lang": "Italian", "en": "To nothing", "canto": "Ah Nyen-Tay", "mando": "Ā Ni-Yěn-Tēi" },
-        { "term": "animato", "cat": "Expression", "ipa": "/a.niˈma.to/", "def": "生動地", "lang": "Italian", "en": "Animated", "canto": "Ah-Ni-Maa-Toe", "mando": "Ā-Ní-Mǎ-Tōu" },
-        { "term": "animé", "cat": "Expression", "ipa": "/a.ni.me/", "def": "活躍的", "lang": "French", "en": "Animated", "canto": "Ah-Ni-May", "mando": "Ā-Ní-Mēi" },
-        { "term": "appassionato", "cat": "Expression", "ipa": "/ap.pas.sjoˈna.to/", "def": "熱情地", "lang": "Italian", "en": "Passionate", "canto": "Ah-Pas-Sio-Naa-Toe", "mando": "Ā-Pà-Sio-Nǎ-Tōu" },
-        { "term": "arco", "cat": "Structure", "ipa": "/ˈar.ko/", "def": "用弓拉奏", "lang": "Italian", "en": "Bowed", "canto": "Ah-Ko", "mando": "Ā-Kōu" },
-        { "term": "assai", "cat": "Keywords", "ipa": "/asˈsai/", "def": "非常", "lang": "Italian", "en": "Very", "canto": "As-Sai", "mando": "Ā-Sāi" },
-        { "term": "a tempo", "cat": "Tempo", "ipa": "/a ˈtɛm.po/", "def": "回原速", "lang": "Italian", "en": "Back to original speed", "canto": "Ah Tem-Po", "mando": "Ā Tēm-Pōu" },
-        { "term": "attacca", "cat": "Structure", "ipa": "/atˈtak.ka/", "def": "緊接下段", "lang": "Italian", "en": "Go straight on", "canto": "Ah-Taak-Ka", "mando": "Ā-Tǎ-Kǎ" },
-        { "term": "ben", "cat": "Keywords", "ipa": "/bɛn/", "def": "充分地/很好的", "lang": "Italian", "en": "Well", "canto": "Ben", "mando": "Bēn" },
-        { "term": "bis", "cat": "Structure", "ipa": "/bis/", "def": "再一次 (安可)", "lang": "Latin", "en": "Twice / Encore", "canto": "Bis", "mando": "Bì-Sī" },
-        { "term": "brillante", "cat": "Expression", "ipa": "/brilˈlan.te/", "def": "輝煌地/華麗地", "lang": "Italian", "en": "Brilliant", "canto": "Bri-Laan-Tay", "mando": "Bù-Lǐ-Lán-Tēi" },
-        { "term": "cadenza", "cat": "Structure", "ipa": "/kaˈdɛn.tsa/", "def": "華彩樂段 (裝飾奏)", "lang": "Italian", "en": "Cadenza", "canto": "Ka-Den-Tsa", "mando": "Kǎ-Dēn-Zā" },
-        { "term": "calando", "cat": "Dynamics", "ipa": "/kaˈlan.do/", "def": "漸弱且漸慢", "lang": "Italian", "en": "Getting softer and slower", "canto": "Ka-Laan-Do", "mando": "Kǎ-Lán-Duō" },
-        { "term": "cantabile", "cat": "Expression", "ipa": "/kanˈta.bi.le/", "def": "如歌地", "lang": "Italian", "en": "Singing style", "canto": "Kaan-Taa-Bi-Lay", "mando": "Kān-Tǎ-Bǐ-Léi" },
-        { "term": "cantando", "cat": "Expression", "ipa": "/kanˈtan.do/", "def": "歌唱般地", "lang": "Italian", "en": "Singing", "canto": "Kaan-Taan-Do", "mando": "Kān-Tǎn-Duō" },
-        { "term": "coda", "cat": "Structure", "ipa": "/ˈko.da/", "def": "尾聲", "lang": "Italian", "en": "Tail / End passage", "canto": "Ko-Da", "mando": "Kōu-Dá" },
-        { "term": "come prima", "cat": "Tempo", "ipa": "/ˈko.me ˈpri.ma/", "def": "如初 (同開始時)", "lang": "Italian", "en": "As before", "canto": "Ko-May Pri-Ma", "mando": "Kōu-Mēi Pǔ-Lì-Mǎ" },
-        { "term": "comodo", "cat": "Tempo", "ipa": "/ˈkɔ.mo.do/", "def": "舒適地", "lang": "Italian", "en": "Comfortable", "canto": "Ko-Mo-Do", "mando": "Kōu-Mó-Duō" },
-        { "term": "con", "cat": "Keywords", "ipa": "/kon/", "def": "用、伴隨著", "lang": "Italian", "en": "With", "canto": "Kon", "mando": "Kōng" },
-        { "term": "con brio", "cat": "Expression", "ipa": "/kon ˈbri.o/", "def": "有活力地", "lang": "Italian", "en": "With vigour", "canto": "Kon Bri-O", "mando": "Kōng Bù-Lǐ-Ōu" },
-        { "term": "con dolore", "cat": "Expression", "ipa": "/kon doˈlo.re/", "def": "悲痛地", "lang": "Italian", "en": "With grief", "canto": "Kon Do-Lo-Ray", "mando": "Kōng Duō-Luō-Réi" },
-        { "term": "con forza", "cat": "Expression", "ipa": "/kon ˈfɔr.tsa/", "def": "有力地", "lang": "Italian", "en": "With force", "canto": "Kon For-Tsa", "mando": "Kōng Fó-Cā" },
-        { "term": "con fuoco", "cat": "Expression", "ipa": "/kon ˈfwɔ.ko/", "def": "火熱地", "lang": "Italian", "en": "With fire", "canto": "Kon Fwo-Ko", "mando": "Kōng Fuō-Kōu" },
-        { "term": "con grazia", "cat": "Expression", "ipa": "/kon ˈɡrat.tsja/", "def": "優雅地", "lang": "Italian", "en": "With grace", "canto": "Kon Graat-Tsia", "mando": "Kōng Gé-Lā-Zi-A" },
-        { "term": "con moto", "cat": "Tempo", "ipa": "/kon ˈmɔ.to/", "def": "有動感地 (稍快)", "lang": "Italian", "en": "With movement", "canto": "Kon Mo-Toe", "mando": "Kōng Mó-Tōu" },
-        { "term": "con spirito", "cat": "Expression", "ipa": "/kon ˈspi.ri.to/", "def": "有精神地", "lang": "Italian", "en": "With spirit", "canto": "Kon Spi-Ri-Toe", "mando": "Kōng Sī-Pī-Lǐ-Tōu" },
-        { "term": "crescendo", "cat": "Dynamics", "ipa": "/kreˈʃɛn.do/", "def": "漸強", "lang": "Italian", "en": "Gradually louder", "canto": "Kre-Shen-Do", "mando": "Kě-Ruēi-Xuān-Duō" },
-        { "term": "da capo", "cat": "Structure", "ipa": "/da ˈka.po/", "def": "從頭再奏 (D.C.)", "lang": "Italian", "en": "From the beginning", "canto": "Daa Ka-Po", "mando": "Dá Kǎ-Pōu" },
-        { "term": "dal segno", "cat": "Structure", "ipa": "/dal ˈse.ɲo/", "def": "從記號處再奏 (D.S.)", "lang": "Italian", "en": "From the sign", "canto": "Daal Sen-Yo", "mando": "Dál Sēn-Yōu" },
-        { "term": "deciso", "cat": "Expression", "ipa": "/deˈtʃi.zo/", "def": "堅定地", "lang": "Italian", "en": "Determined", "canto": "De-Chi-So", "mando": "Dēi-Qí-Suō" },
-        { "term": "decrescendo", "cat": "Dynamics", "ipa": "/de.kreˈʃɛn.do/", "def": "漸弱", "lang": "Italian", "en": "Gradually softer", "canto": "Day-Kre-Shen-Do", "mando": "Dēi-Kě-Ruēi-Xuān-Duō" },
-        { "term": "diminuendo", "cat": "Dynamics", "ipa": "/di.mi.nuˈɛn.do/", "def": "漸弱", "lang": "Italian", "en": "Gradually softer", "canto": "Di-Min-Yu-En-Do", "mando": "Dì-Mǐ-Niǔ-Wēn-Duō" },
-        { "term": "dolce", "cat": "Expression", "ipa": "/ˈdol.tʃe/", "def": "甜美地", "lang": "Italian", "en": "Sweet", "canto": "Dol-Chay", "mando": "Duō-Qiè" },
-        { "term": "dolente", "cat": "Expression", "ipa": "/doˈlɛn.te/", "def": "悲傷地/哀痛地", "lang": "Italian", "en": "Sad / Sorrowful", "canto": "Do-Len-Tay", "mando": "Duō-Lěn-Tēi" },
-        { "term": "doloroso", "cat": "Expression", "ipa": "/do.loˈro.zo/", "def": "痛苦地", "lang": "Italian", "en": "Sorrowful", "canto": "Do-Lo-Ro-So", "mando": "Duō-Luō-Ruō-Suō" },
-        { "term": "douce", "cat": "Expression", "ipa": "/dus/", "def": "甜美的", "lang": "French", "en": "Sweet", "canto": "Doos", "mando": "Dù-Sī" },
-        { "term": "energico", "cat": "Expression", "ipa": "/eˈnɛr.dʒi.ko/", "def": "精力充沛地", "lang": "Italian", "en": "Energetic", "canto": "En-Er-Ji-Ko", "mando": "Ai-Nài-Jí-Kōu" },
-        { "term": "espressivo", "cat": "Expression", "ipa": "/es.presˈsi.vo/", "def": "富有表情地", "lang": "Italian", "en": "Expressive", "canto": "Es-Pres-Si-Vo", "mando": "Ai-Sī-Pǔ-Ruēi-Sī-Vōu" },
-        { "term": "fine", "cat": "Structure", "ipa": "/ˈfi.ne/", "def": "結束", "lang": "Italian", "en": "The end", "canto": "Fi-Nay", "mando": "Fēi-Néi" },
-        { "term": "forte", "cat": "Dynamics", "ipa": "/ˈfɔr.te/", "def": "強", "lang": "Italian", "en": "Loud", "canto": "For-Tay", "mando": "Fó-Tēi" },
-        { "term": "fortepiano", "cat": "Dynamics", "ipa": "/ˈfɔr.te ˈpja.no/", "def": "強後突弱", "lang": "Italian", "en": "Loud then soft", "canto": "For-Tay Pi-Aa-No", "mando": "Fó-Tēi Pī-A-Nuò" },
-        { "term": "fortissimo", "cat": "Dynamics", "ipa": "/forˈtis.si.mo/", "def": "甚強", "lang": "Italian", "en": "Very loud", "canto": "For-Tis-Si-Mo", "mando": "Fó-Tí-Sī-Mó" },
-        { "term": "giocoso", "cat": "Expression", "ipa": "/dʒoˈko.zo/", "def": "詼諧地", "lang": "Italian", "en": "Playful", "canto": "Jo-Ko-So", "mando": "Jiào-Kōu-Suō" },
-        { "term": "giusto", "cat": "Tempo", "ipa": "/ˈdʒu.sto/", "def": "精確的 (Tempo giusto)", "lang": "Italian", "en": "Strict / Exact", "canto": "Jus-Toe", "mando": "Jiū-Sī-Tōu" },
-        { "term": "glissando", "cat": "Structure", "ipa": "/ɡlisˈsan.do/", "def": "滑音", "lang": "Italian", "en": "Sliding", "canto": "Glis-Saan-Do", "mando": "Gé-Lǐ-Sān-Duō" },
-        { "term": "grandioso", "cat": "Expression", "ipa": "/ɡranˈdjo.zo/", "def": "雄偉地", "lang": "Italian", "en": "Grandly", "canto": "Graan-Di-O-So", "mando": "Gé-Lán-Di-Ō-Suō" },
-        { "term": "grave", "cat": "Tempo", "ipa": "/ˈɡra.ve/", "def": "莊板 (極緩慢莊嚴)", "lang": "Italian", "en": "Very slow, solemn", "canto": "Graa-Vay", "mando": "Gé-Lā-Vēi" },
-        { "term": "grazioso", "cat": "Expression", "ipa": "/ɡratˈtsjo.zo/", "def": "優雅地", "lang": "Italian", "en": "Graceful", "canto": "Graat-Zi-O-So", "mando": "Gé-Lā-Qì-Ōu-Suō" },
-        { "term": "lacrimoso", "cat": "Expression", "ipa": "/la.kriˈmo.zo/", "def": "哭泣地/悲傷地", "lang": "Italian", "en": "Tearful", "canto": "La-Kri-Mo-So", "mando": "Lā-Kè-Lǐ-Mó-Suō" },
-        { "term": "langsam", "cat": "Tempo", "ipa": "/ˈlaŋzaːm/", "def": "慢的", "lang": "German", "en": "Slow", "canto": "Laang-Zaam", "mando": "Lāng-Zām" },
-        { "term": "largamente", "cat": "Expression", "ipa": "/lar.ɡaˈmen.te/", "def": "寬廣地", "lang": "Italian", "en": "Broadly", "canto": "Lar-Gaa-Men-Tay", "mando": "Lā-Gǎ-Mēn-Tēi" },
-        { "term": "larghetto", "cat": "Tempo", "ipa": "/larˈɡet.to/", "def": "小廣板 (比廣板稍快)", "lang": "Italian", "en": "Rather broad", "canto": "Laa-Get-Toe", "mando": "Lā-Gěi-Tōu" },
-        { "term": "largo", "cat": "Tempo", "ipa": "/ˈlar.ɡo/", "def": "廣板 (寬廣地、緩慢地)", "lang": "Italian", "en": "Broad, slow", "canto": "Laa-Go", "mando": "Lā-Gōu" },
-        { "term": "lebhaft", "cat": "Tempo", "ipa": "/ˈleːphaft/", "def": "活潑的", "lang": "German", "en": "Lively", "canto": "Layp-Haft", "mando": "Léi-Pǔ-Hā-Fū-Tè" },
-        { "term": "legato", "cat": "Structure", "ipa": "/leˈɡa.to/", "def": "圓滑奏 (連音)", "lang": "Italian", "en": "Smoothly", "canto": "Le-Gaa-Toe", "mando": "Léi-Gā-Tōu" },
-        { "term": "leggiero", "cat": "Structure", "ipa": "/ledˈdʒɛ.ro/", "def": "輕巧地", "lang": "Italian", "en": "Lightly", "canto": "Le-Jee-E-Ro", "mando": "Léi-Jié-Luō" },
-        { "term": "lent", "cat": "Tempo", "ipa": "/lɑ̃/", "def": "慢的", "lang": "French", "en": "Slow", "canto": "Long", "mando": "Lāng" },
-        { "term": "lento", "cat": "Tempo", "ipa": "/ˈlɛn.to/", "def": "慢板", "lang": "Italian", "en": "Slow", "canto": "Len-Toe", "mando": "Lēn-Tōu" },
-        { "term": "l'istesso", "cat": "Tempo", "ipa": "/liˈstes.so/", "def": "同樣的 (速度)", "lang": "Italian", "en": "The same", "canto": "Lis-Tes-So", "mando": "Lǐ-Sī-Tēi-Suō" },
-        { "term": "loco", "cat": "Structure", "ipa": "/ˈlɔ.ko/", "def": "回到原高", "lang": "Italian", "en": "At normal pitch", "canto": "Lo-Ko", "mando": "Luō-Kōu" },
-        { "term": "ma", "cat": "Keywords", "ipa": "/ma/", "def": "但是", "lang": "Italian", "en": "But", "canto": "Maa", "mando": "Mǎ" },
-        { "term": "maestoso", "cat": "Expression", "ipa": "/ma.eˈsto.zo/", "def": "莊嚴地", "lang": "Italian", "en": "Majestic", "canto": "Mai-Sto-So", "mando": "Mài-Sī-Tuō-Suō" },
-        { "term": "marcato", "cat": "Structure", "ipa": "/marˈka.to/", "def": "加強音 (清晰的)", "lang": "Italian", "en": "Marked / Accented", "canto": "Maa-Kaa-Toe", "mando": "Mǎ-Kǎ-Tōu" },
-        { "term": "marziale", "cat": "Expression", "ipa": "/marˈtsja.le/", "def": "進行曲風格", "lang": "Italian", "en": "Martial / March-like", "canto": "Maa-Tsia-Lay", "mando": "Mǎ-Qià-Léi" },
-        { "term": "mäßig", "cat": "Tempo", "ipa": "/ˈmɛːsɪç/", "def": "中等的/適度的", "lang": "German", "en": "Moderate", "canto": "Me-Sich", "mando": "Mēi-Sī-Hē" },
-        { "term": "meno", "cat": "Keywords", "ipa": "/ˈme.no/", "def": "較少", "lang": "Italian", "en": "Less", "canto": "May-No", "mando": "Mēi-Nuò" },
-        { "term": "meno mosso", "cat": "Tempo", "ipa": "/ˈme.no ˈmɔs.so/", "def": "稍慢 (較少動態)", "lang": "Italian", "en": "Less movement", "canto": "May-No Mos-So", "mando": "Mēi-Nuò Mó-Suǒ" },
-        { "term": "mesto", "cat": "Expression", "ipa": "/ˈmɛ.sto/", "def": "憂鬱地", "lang": "Italian", "en": "Sad", "canto": "Mes-Toe", "mando": "Mēi-Sī-Tōu" },
-        { "term": "mezzo piano", "cat": "Dynamics", "ipa": "/ˈmɛd.dzo ˈpja.no/", "def": "中弱", "lang": "Italian", "en": "Moderately soft", "canto": "Met-So Pi-Aa-No", "mando": "Mēi-Zuǒ Pī-A-Nuò" },
-        { "term": "misterioso", "cat": "Expression", "ipa": "/mi.steˈrjo.zo/", "def": "神秘地", "lang": "Italian", "en": "Mysterious", "canto": "Mis-Tay-Rio-So", "mando": "Mǐ-Sī-Tè-Lió-Suō" },
-        { "term": "moderato", "cat": "Tempo", "ipa": "/mo.deˈra.to/", "def": "中板 (適中速度)", "lang": "Italian", "en": "Moderate speed", "canto": "Mo-De-Raa-Toe", "mando": "Mó-Dé-Lā-Tōu" },
-        { "term": "modéré", "cat": "Tempo", "ipa": "/mɔ.de.ʁe/", "def": "中等的", "lang": "French", "en": "Moderate", "canto": "Mo-Day-Ray", "mando": "Mó-Dé-Réi" },
-        { "term": "molto", "cat": "Keywords", "ipa": "/ˈmol.to/", "def": "很、甚", "lang": "Italian", "en": "Very", "canto": "Mol-Toe", "mando": "Mó-Er-Tōu" },
-        { "term": "morendo", "cat": "Dynamics", "ipa": "/moˈrɛn.do/", "def": "漸弱消失", "lang": "Italian", "en": "Dying away", "canto": "Mo-Ren-Do", "mando": "Mó-Ruēi-En-Duō" },
-        { "term": "mosso", "cat": "Tempo", "ipa": "/ˈmɔs.so/", "def": "活躍的/動態", "lang": "Italian", "en": "Moved / Animated", "canto": "Mos-So", "mando": "Mó-Suǒ" },
-        { "term": "nobilmente", "cat": "Expression", "ipa": "/no.bilˈmen.te/", "def": "高貴地/宏偉地", "lang": "Italian", "en": "Nobly", "canto": "No-Bil-Men-Tay", "mando": "Nuò-Bǐ-Er-Mēn-Tēi" },
-        { "term": "non", "cat": "Keywords", "ipa": "/non/", "def": "不", "lang": "Italian", "en": "Not", "canto": "Non", "mando": "Nòng" },
-        { "term": "opus", "cat": "General", "ipa": "/ˈo.pus/", "def": "作品編號", "lang": "Latin", "en": "Work", "canto": "O-Pus", "mando": "Ōu-Pà-Sī" },
-        { "term": "ossia", "cat": "Structure", "ipa": "/osˈsi.a/", "def": "或者 (替換樂段)", "lang": "Italian", "en": "Or / Alternatively", "canto": "Os-Si-Ah", "mando": "Ōu-Sī-A" },
-        { "term": "ottava", "cat": "Structure", "ipa": "/otˈta.va/", "def": "八度 (8va)", "lang": "Italian", "en": "Octave", "canto": "Ot-Taa-Va", "mando": "Ōu-Tǎ-Vā" },
-        { "term": "pedale", "cat": "Structure", "ipa": "/peˈda.le/", "def": "踏板", "lang": "Italian", "en": "Pedal", "canto": "Pe-Daa-Lay", "mando": "Pēi-Dá-Léi" },
-        { "term": "perdendosi", "cat": "Dynamics", "ipa": "/perˈdɛn.do.si/", "def": "逐漸消失", "lang": "Italian", "en": "Dying away", "canto": "Per-Den-Do-Si", "mando": "Péi-Děn-Duō-Sī" },
-        { "term": "pesante", "cat": "Expression", "ipa": "/peˈzan.te/", "def": "沈重地", "lang": "Italian", "en": "Heavy", "canto": "Pe-Zaan-Tay", "mando": "Pēi-Zǎn-Tēi" },
-        { "term": "piacevole", "cat": "Expression", "ipa": "/pjaˈtʃe.vo.le/", "def": "愉快的/愜意的", "lang": "Italian", "en": "Pleasant", "canto": "Pia-Che-Vo-Lay", "mando": "Pī-A-Qiè-Vōu-Léi" },
-        { "term": "piano", "cat": "Dynamics", "ipa": "/ˈpja.no/", "def": "弱", "lang": "Italian", "en": "Soft", "canto": "Pi-Aa-No", "mando": "Pī-A-Nuò" },
-        { "term": "pianissimo", "cat": "Dynamics", "ipa": "/pjaˈnis.si.mo/", "def": "甚弱", "lang": "Italian", "en": "Very soft", "canto": "Pi-Aa-Nis-Si-Mo", "mando": "Pī-A-Ní-Sī-Mó" },
-        { "term": "più", "cat": "Keywords", "ipa": "/pju/", "def": "更多", "lang": "Italian", "en": "More", "canto": "Pew", "mando": "Pi-Yōu" },
-        { "term": "più mosso", "cat": "Tempo", "ipa": "/pju ˈmɔs.so/", "def": "稍快 (更多動態)", "lang": "Italian", "en": "More movement", "canto": "Pew Mos-So", "mando": "Pi-Yōu Mó-Suǒ" },
-        { "term": "pizzicato", "cat": "Structure", "ipa": "/pit.tsiˈka.to/", "def": "撥奏", "lang": "Italian", "en": "Plucked", "canto": "Pit-Tsi-Kaa-Toe", "mando": "Pī-Zī-Kǎ-Tōu" },
-        { "term": "poco", "cat": "Keywords", "ipa": "/ˈpɔ.ko/", "def": "一點點", "lang": "Italian", "en": "A little", "canto": "Po-Ko", "mando": "Pōu-Kōu" },
-        { "term": "poi", "cat": "Keywords", "ipa": "/pɔi/", "def": "然後", "lang": "Italian", "en": "Then", "canto": "Poy", "mando": "Pō-Yī" },
-        { "term": "prestissimo", "cat": "Tempo", "ipa": "/presˈtis.si.mo/", "def": "最急板", "lang": "Italian", "en": "As fast as possible", "canto": "Pres-Tis-Si-Mo", "mando": "Pǔ-Ruēi-Sī-Tí-Sī-Mó" },
-        { "term": "presto", "cat": "Tempo", "ipa": "/ˈprɛs.to/", "def": "急板", "lang": "Italian", "en": "Very fast", "canto": "Pres-Toe", "mando": "Pǔ-Ruēi-Sī-Tōu" },
-        { "term": "prima", "cat": "Structure", "ipa": "/ˈpri.ma/", "def": "第一", "lang": "Italian", "en": "First", "canto": "Pri-Ma", "mando": "Pǔ-Lì-Mǎ" },
-        { "term": "quasi", "cat": "Keywords", "ipa": "/ˈkwa.zi/", "def": "幾乎/好像", "lang": "Italian", "en": "As if / Almost", "canto": "Kwaa-Zi", "mando": "Kuā-Zī" },
-        { "term": "rallentando", "cat": "Tempo", "ipa": "/ral.lenˈtan.do/", "def": "漸慢", "lang": "Italian", "en": "Gradually slower", "canto": "Raa-Len-Taan-Do", "mando": "Ruā-Lén-Tàn-Duō" },
-        { "term": "retenu", "cat": "Tempo", "ipa": "/ʁə.tə.ny/", "def": "突慢/保留", "lang": "French", "en": "Held back", "canto": "Re-Ten-New", "mando": "Ruē-Tè-Niū" },
-        { "term": "rigoroso", "cat": "Expression", "ipa": "/ri.ɡoˈro.zo/", "def": "嚴格地", "lang": "Italian", "en": "Strict", "canto": "Ri-Go-Ro-So", "mando": "Lǐ-Gē-Luō-Suō" },
-        { "term": "rinforzando", "cat": "Dynamics", "ipa": "/rin.forˈtsan.do/", "def": "加強 (個別音)", "lang": "Italian", "en": "Reinforcing", "canto": "Rin-For-Tsaan-Do", "mando": "Lín-Fó-Cǎn-Duō" },
-        { "term": "risoluto", "cat": "Expression", "ipa": "/ri.zoˈlu.to/", "def": "果斷地", "lang": "Italian", "en": "Bold / Resolute", "canto": "Ri-Zo-Lu-Toe", "mando": "Ruì-Zuǒ-Lǔ-Tōu" },
-        { "term": "ritardando", "cat": "Tempo", "ipa": "/ri.tarˈdan.do/", "def": "漸慢", "lang": "Italian", "en": "Gradually slower", "canto": "Ri-Taa-Daan-Do", "mando": "Ruì-Tà-Dàn-Duō" },
-        { "term": "ritenuto", "cat": "Tempo", "ipa": "/ri.teˈnu.to/", "def": "突慢", "lang": "Italian", "en": "Held back", "canto": "Ri-Ten-Nu-Toe", "mando": "Ruì-Tè-Nǔ-Tōu" },
-        { "term": "ritmico", "cat": "Expression", "ipa": "/ˈrit.mi.ko/", "def": "有節奏地", "lang": "Italian", "en": "Rhythmic", "canto": "Rit-Mi-Ko", "mando": "Ruì-Tè-Mǐ-Kōu" },
-        { "term": "rubato", "cat": "Tempo", "ipa": "/ruˈba.to/", "def": "彈性速度", "lang": "Italian", "en": "Robbed time", "canto": "Ru-Baa-Toe", "mando": "Lǔ-Bā-Tōu" },
-        { "term": "ruhig", "cat": "Expression", "ipa": "/ˈruːɪç/", "def": "平靜的", "lang": "German", "en": "Peaceful", "canto": "Ru-Hick", "mando": "Lù-Xī-Kè" },
-        { "term": "scherzando", "cat": "Expression", "ipa": "/skerˈtsan.do/", "def": "戲謔地/開玩笑地", "lang": "Italian", "en": "Playful, joking", "canto": "Sker-Tsaan-Do", "mando": "Sī-Kě-Cǎn-Duō" },
-        { "term": "schnell", "cat": "Tempo", "ipa": "/ʃnɛl/", "def": "快速地", "lang": "German", "en": "Fast", "canto": "Sh-Nel", "mando": "Shī-Nài-Er" },
-        { "term": "segue", "cat": "Structure", "ipa": "/ˈse.ɡwe/", "def": "緊接/繼續", "lang": "Italian", "en": "Follows straight on", "canto": "Se-Gway", "mando": "Sēi-Guēi" },
-        { "term": "semplice", "cat": "Expression", "ipa": "/ˈsɛm.pli.tʃe/", "def": "單純地/樸素地", "lang": "Italian", "en": "Simple", "canto": "Sem-Pli-Chay", "mando": "Sēn-Pǔ-Lǐ-Qiè" },
-        { "term": "sempre", "cat": "Keywords", "ipa": "/ˈsɛm.pre/", "def": "始終/一直", "lang": "Italian", "en": "Always", "canto": "Sem-Pray", "mando": "Sēn-Pǔ-Réi" },
-        { "term": "senza", "cat": "Keywords", "ipa": "/ˈsɛn.tsa/", "def": "沒有", "lang": "Italian", "en": "Without", "canto": "Sen-Tsa", "mando": "Sēn-Cā" },
-        { "term": "sforzando", "cat": "Dynamics", "ipa": "/sforˈtsan.do/", "def": "突強 (sf/sfz)", "lang": "Italian", "en": "Forced", "canto": "Sfor-Tsaan-Do", "mando": "Sī-Fó-Cǎn-Duō" },
-        { "term": "simile", "cat": "Structure", "ipa": "/ˈsi.mi.le/", "def": "同前/相似地", "lang": "Italian", "en": "In the same way", "canto": "Si-Mi-Lay", "mando": "Sī-Mǐ-Léi" },
-        { "term": "smorzando", "cat": "Dynamics", "ipa": "/zmorˈtsan.do/", "def": "漸慢且漸弱", "lang": "Italian", "en": "Dying away", "canto": "Smor-Tsaan-Do", "mando": "Sī-Mó-Cǎn-Duō" },
-        { "term": "solo", "cat": "Structure", "ipa": "/ˈso.lo/", "def": "獨奏", "lang": "Italian", "en": "Alone / Solo", "canto": "So-Lo", "mando": "Suō-Luō" },
-        { "term": "sonoro", "cat": "Expression", "ipa": "/soˈnɔ.ro/", "def": "響亮地/洪亮地", "lang": "Italian", "en": "Resonant", "canto": "So-No-Ro", "mando": "Suǒ-Nuò-Luō" },
-        { "term": "sordino", "cat": "Structure", "ipa": "/sorˈdi.no/", "def": "弱音器", "lang": "Italian", "en": "Mute", "canto": "Sor-Di-No", "mando": "Suǒ-Dí-Nuò" },
-        { "term": "sostenuto", "cat": "Expression", "ipa": "/so.steˈnu.to/", "def": "持續地", "lang": "Italian", "en": "Sustained", "canto": "Sos-Ten-Nu-Toe", "mando": "Suǒ-Sī-Tè-Nǔ-Tōu" },
-        { "term": "sotto voce", "cat": "Dynamics", "ipa": "/ˈsot.to ˈvo.tʃe/", "def": "低聲地", "lang": "Italian", "en": "Undertone", "canto": "Sot-To Vo-Chay", "mando": "Suǒ-Tōu Vōu-Qiè" },
-        { "term": "spiritoso", "cat": "Expression", "ipa": "/spi.riˈto.zo/", "def": "精神飽滿地", "lang": "Italian", "en": "Spirited", "canto": "Spi-Ri-To-So", "mando": "Sī-Pī-Lǐ-Tuō-Suō" },
-        { "term": "staccato", "cat": "Structure", "ipa": "/stakˈka.to/", "def": "斷奏 (跳音)", "lang": "Italian", "en": "Detached", "canto": "Sta-Kaa-Toe", "mando": "Sī-Tǎ-Kǎ-Tōu" },
-        { "term": "stretto", "cat": "Tempo", "ipa": "/ˈstret.to/", "def": "緊縮/加速", "lang": "Italian", "en": "Faster / Tightening", "canto": "Stret-Toe", "mando": "Sī-Tuēi-Tōu" },
-        { "term": "stringendo", "cat": "Tempo", "ipa": "/strinˈdʒɛn.do/", "def": "加緊 (漸快)", "lang": "Italian", "en": "Pressing on", "canto": "Strin-Jen-Do", "mando": "Si-Tè-Lín-Jiān-Duō" },
-        { "term": "subito", "cat": "Keywords", "ipa": "/ˈsu.bi.to/", "def": "突然地", "lang": "Italian", "en": "Suddenly", "canto": "Su-Bi-Toe", "mando": "Sū-Bǐ-Tōu" },
-        { "term": "tanto", "cat": "Keywords", "ipa": "/ˈtan.to/", "def": "太/很多", "lang": "Italian", "en": "So much", "canto": "Taan-Toe", "mando": "Tǎn-Tōu" },
-        { "term": "tenuto", "cat": "Structure", "ipa": "/teˈnu.to/", "def": "保持音 (拖長)", "lang": "Italian", "en": "Held", "canto": "Te-Nu-Toe", "mando": "Tè-Nǔ-Tōu" },
-        { "term": "tranquillo", "cat": "Expression", "ipa": "/tranˈkwil.lo/", "def": "平靜地", "lang": "Italian", "en": "Calm", "canto": "Traan-Kwil-Lo", "mando": "Tè-Luǎn-Kuī-Luō" },
-        { "term": "traurig", "cat": "Expression", "ipa": "/ˈtʁaʊ̯ʁɪç/", "def": "悲傷的", "lang": "German", "en": "Sad", "canto": "Trao-Rick", "mando": "Tè-Láo-Lǐ-Kè" },
-        { "term": "triste", "cat": "Expression", "ipa": "/ˈtri.ste/", "def": "悲傷地", "lang": "Italian", "en": "Sad", "canto": "Tris-Tay", "mando": "Tè-Ruì-Sī-Tēi" },
-        { "term": "troppo", "cat": "Keywords", "ipa": "/ˈtrɔp.po/", "def": "太、過多", "lang": "Italian", "en": "Too much", "canto": "Trop-Po", "mando": "Tuō-Pōu" },
-        { "term": "tutti", "cat": "Structure", "ipa": "/ˈtut.ti/", "def": "全體 (樂隊)", "lang": "Italian", "en": "All / Everyone", "canto": "Tut-Ti", "mando": "Tū-Tī" },
-        { "term": "veloce", "cat": "Tempo", "ipa": "/veˈlo.tʃe/", "def": "快速的", "lang": "Italian", "en": "Swift / Rapid", "canto": "Ve-Lo-Chay", "mando": "Vēi-Luō-Qiè" },
-        { "term": "vite", "cat": "Tempo", "ipa": "/vit/", "def": "快速地", "lang": "French", "en": "Fast", "canto": "Veet", "mando": "Vì-Tè" },
-        { "term": "vivace", "cat": "Tempo", "ipa": "/viˈva.tʃe/", "def": "甚快 / 充滿活力", "lang": "Italian", "en": "Lively, quick", "canto": "Vi-Vaa-Chi", "mando": "Vī-Vā-Qiè" },
-        { "term": "vivo", "cat": "Tempo", "ipa": "/ˈvi.vo/", "def": "活潑地", "lang": "Italian", "en": "Lively", "canto": "Vi-Vo", "mando": "Vī-Vōu" },
-        { "term": "volante", "cat": "Expression", "ipa": "/voˈlan.te/", "def": "飛舞般的/輕快的", "lang": "Italian", "en": "Flying", "canto": "Vo-Laan-Tay", "mando": "Vō-Lán-Tēi" },
-        { "term": "volti subito", "cat": "Structure", "ipa": "/ˈvɔl.ti ˈsu.bi.to/", "def": "急翻頁 (V.S.)", "lang": "Italian", "en": "Turn page quickly", "canto": "Vol-Ti Su-Bi-Toe", "mando": "Vō-Tí Sū-Bǐ-Tōu" }
+        { "term": "allargando", "cat": "Tempo", "ipa": "/al.larˈɡan.do/", "def": "漸寬廣 (漸慢且漸強)", "lang": "Italian", "en": "Broadening", "canto": "Ah-Lar-Gaan-Do", "mando": "Ā-Lā-Gǎn-Duō" }
+
     ];
 
     const langMap = { "Italian": "it-IT", "German": "de-DE", "French": "fr-FR", "English": "en-US", "Latin": "it-IT" };
     
+    // 定義 A-J 的具體分類與背景顏色
+    const categoryDefinitions = [
+        { key: "A", label: "A. 速度 (Tempo)", color: "#E8F5E9" },
+        { key: "B", label: "B. 力度 (Dynamics)", color: "#E3F2FD" },
+        { key: "C", label: "C. 表情 (Expression)", color: "#FFF3E0" },
+        { key: "D", label: "D. 結構/演奏法", color: "#F3E5F5" },
+        { key: "E", label: "E. 修飾詞 (Modifiers)", color: "#E0F2F1" },
+        { key: "F", label: "F. 樂器 (Instruments)", color: "#FFE0B2" },
+        { key: "G", label: "G. 聲部 (Voices)", color: "#F8BBD9" },
+        { key: "H", label: "H. 譜號 (Clefs)", color: "#E1F5FE" },
+        { key: "I", label: "I. 樂器家族 (Families)", color: "#FFF9C4" }, // 淡黃色
+        { key: "J", label: "J. 其他生字 (Other)", color: "#ECEFF1" }   // 淡灰藍色
+    ];
+
     // --- 變數 ---
-    let musicTerms = JSON.parse(JSON.stringify(defaultData)); 
+    let musicTerms = [];
     let currentPool = [];
     let currentQuestion = null;
     let wrongAnswers = [];
@@ -605,6 +580,7 @@
     let autoNextTimer = null;
     let score = 0;
     let questionCount = 0;
+    let totalQuestions = 0;
     let isAnswering = false;
 
     // --- 聽書模式變數 ---
@@ -614,12 +590,41 @@
     let listenTimeouts = []; 
 
     // --- 初始化 ---
-    window.onload = function() {
+// 定義外部資料庫網址
+    const EXTERNAL_DATA_URL = "https://fungccc.github.io/mquiz/db/music_terms.json";
+
+    window.onload = async function() {
         initTheme();
         loadStoredData();
+        
+        // 顯示載入中狀態 (選用，避免畫面空白)
+        const filterContainer = document.getElementById('category-checkboxes');
+        filterContainer.innerHTML = '<div style="padding:10px; color:var(--text-sec);">⏳ Loading data from cloud...</div>';
+
+        try {
+            // 嘗試從網路讀取 JSON
+            const response = await fetch(EXTERNAL_DATA_URL);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log(`Successfully loaded ${data.length} terms from cloud.`);
+            
+            // 如果成功下載，就使用網路資料
+            musicTerms = normalizeTermData(data);
+
+        } catch (e) {
+            console.warn("Cloud data load failed, switching to local backup.", e);
+            // 如果網路失敗 (例如沒網路、網址錯)，就用原本的 defaultData 當備用
+            musicTerms = normalizeTermData(defaultData);
+            alert("無法讀取雲端資料庫 (可能是網路問題)，已切換至離線備用資料。\nCannot load cloud data, using offline backup.");
+        }
+
+        // 資料準備好後，渲染分類選單
         renderCategoryFilters();
     };
-
     function initTheme() {
         const theme = localStorage.getItem('theme') || 'light';
         document.body.setAttribute('data-theme', theme);
@@ -642,16 +647,41 @@
         document.getElementById('home-best-5m').innerText = stats["300"] || 0;
     }
 
+    // 重新設計的分類渲染函數 (支援顏色)
     function renderCategoryFilters() {
-        const cats = [...new Set(musicTerms.map(i => i.cat || 'General'))].sort();
         const container = document.getElementById('category-checkboxes');
         container.innerHTML = '';
-        cats.forEach(c => {
-            const label = document.createElement('label');
-            label.className = 'checkbox-label';
-            label.innerHTML = `<input type="checkbox" value="${c}" checked> ${c}`;
-            container.appendChild(label);
+        
+        categoryDefinitions.forEach(c => {
+            // 計算該分類的生字數量
+            const count = musicTerms.filter(t => t.category === c.key).length;
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'category-item';
+            wrapper.style.backgroundColor = c.color; // 套用指定顏色
+            
+            wrapper.innerHTML = `
+                <label class="checkbox-label">
+                    <input type="checkbox" value="${c.key}" checked>
+                    <span>${c.label}</span>
+                    <span class="count-badge">${count}</span>
+                </label>
+                <button class="only-btn" type="button">只選</button>
+            `;
+            wrapper.querySelector('.only-btn').onclick = () => selectOnlyCategory(c.key);
+            container.appendChild(wrapper);
         });
+    }
+
+    function toggleAllCategories() {
+        const checkboxes = document.querySelectorAll('#category-checkboxes input[type="checkbox"]');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => { cb.checked = !allChecked; });
+    }
+
+    function selectOnlyCategory(categoryKey) {
+        const checkboxes = document.querySelectorAll('#category-checkboxes input[type="checkbox"]');
+        checkboxes.forEach(cb => { cb.checked = cb.value === categoryKey; });
     }
 
     function getSelectedCategories() {
@@ -667,8 +697,13 @@
         document.getElementById(id).classList.remove('hidden');
         
         const fab = document.getElementById('fab-mistakes');
-        if(id === 'screen-home') fab.classList.remove('hidden');
-        else fab.classList.add('hidden');
+        if(id === 'screen-home') {
+            fab.classList.remove('hidden');
+            document.getElementById('data-manager-btn').classList.remove('hidden');
+        } else {
+            fab.classList.add('hidden');
+            document.getElementById('data-manager-btn').classList.add('hidden');
+        }
     }
 
     function selectTime(seconds) {
@@ -686,8 +721,8 @@
     function startGame(lang) {
         const selectedCats = getSelectedCategories();
         if (selectedCats.length === 0) return alert("Please select a category!");
-        currentPool = musicTerms.filter(t => selectedCats.includes(t.cat || 'General'));
-        if (currentPool.length < 4) return alert("Not enough terms selected.");
+        currentPool = musicTerms.filter(t => selectedCats.includes(t.category));
+        if (currentPool.length < 4) return alert("Not enough terms selected (Min 4).");
         currentLang = lang;
         isDictation = document.getElementById('dictation-toggle').checked;
         isReviewMode = false;
@@ -696,7 +731,7 @@
 
     function startReviewMode() {
         if (wrongAnswers.length === 0) return;
-        currentPool = wrongAnswers; 
+        currentPool = wrongAnswers.slice(); 
         currentLang = 'zh'; isDictation = false; isReviewMode = true; currentModeTime = -1;
         closeMistakesModal(); startQuizLogic();
     }
@@ -705,6 +740,9 @@
         score = 0; questionCount = 0;
         document.getElementById('score-display').innerText = `✅ 0`;
         document.getElementById('progress-bar-fill').style.width = '0%';
+        totalQuestions = currentPool.length;
+        document.getElementById('progress-text').innerText = `Q 0 / ${totalQuestions}`;
+        document.getElementById('final-progress').innerText = '';
         if (currentModeTime > 0) { timeLeft = currentModeTime; startTimer(); } 
         else { document.getElementById('timer-display').innerText = "∞"; }
         showScreen('screen-quiz'); nextQuestion();
@@ -714,7 +752,7 @@
     function startListenMode() {
         const selectedCats = getSelectedCategories();
         if (selectedCats.length === 0) return alert("Please select a category!");
-        listenQueue = musicTerms.filter(t => selectedCats.includes(t.cat || 'General'));
+        listenQueue = musicTerms.filter(t => selectedCats.includes(t.category));
         listenQueue.sort(() => Math.random() - 0.5); 
         if (listenQueue.length === 0) return alert("No terms found.");
         listenIndex = 0; isListenPaused = false;
@@ -737,18 +775,38 @@
         window.speechSynthesis.cancel();
 
         const u1 = new SpeechSynthesisUtterance(item.term);
-        u1.lang = langMap[item.lang] || 'en-US';
+        u1.lang = langMap[item.lang] || 'it-IT';
         u1.rate = 0.9;
 
         const u2 = new SpeechSynthesisUtterance(item.en);
         u2.lang = 'en-US';
+        u2.rate = 0.85;
         
         const u3 = new SpeechSynthesisUtterance(item.def);
         u3.lang = 'zh-TW';
+        u3.rate = 0.8;
 
-        u1.onend = () => { if (isListenPaused) return; listenTimeouts.push(setTimeout(() => { document.getElementById('listen-en').innerText = item.en; window.speechSynthesis.speak(u2); }, 500)); };
-        u2.onend = () => { if (isListenPaused) return; listenTimeouts.push(setTimeout(() => { document.getElementById('listen-zh').innerText = item.def; window.speechSynthesis.speak(u3); }, 500)); };
-        u3.onend = () => { if (isListenPaused) return; listenTimeouts.push(setTimeout(() => { listenIndex++; playNextListenItem(); }, 2000)); };
+        u1.onend = () => {
+            if (isListenPaused) return;
+            listenTimeouts.push(setTimeout(() => {
+                document.getElementById('listen-en').innerText = item.en;
+                window.speechSynthesis.speak(u2);
+            }, 500));
+        };
+        u2.onend = () => {
+            if (isListenPaused) return;
+            listenTimeouts.push(setTimeout(() => {
+                document.getElementById('listen-zh').innerText = item.def;
+                window.speechSynthesis.speak(u3);
+            }, 500));
+        };
+        u3.onend = () => {
+            if (isListenPaused) return;
+            listenTimeouts.push(setTimeout(() => {
+                listenIndex++;
+                playNextListenItem();
+            }, 2000));
+        };
 
         window.speechSynthesis.speak(u1);
     }
@@ -756,7 +814,7 @@
     function toggleListenPause() {
         isListenPaused = !isListenPaused;
         const btn = document.getElementById('btn-listen-pause');
-        const item = listenQueue[listenIndex]; // Get current item for display
+        const item = listenQueue[listenIndex]; 
 
         if (isListenPaused) {
             window.speechSynthesis.cancel();
@@ -794,13 +852,21 @@
 
         const idx = Math.floor(Math.random() * currentPool.length);
         currentQuestion = currentPool[idx];
+        
         questionCount++;
 
-        document.getElementById('progress-text').innerText = `Q: ${questionCount}`;
+        // 修正 Q 6/5 問題：如果答題數超過總數(例如無限模式)，只顯示 "Q 6"
+        let progressStr = `Q ${questionCount}`;
+        if (questionCount <= totalQuestions) {
+            progressStr += ` / ${totalQuestions}`;
+        }
+        document.getElementById('progress-text').innerText = progressStr;
+
         const termEl = document.getElementById('question-term');
         const ipaEl = document.getElementById('question-ipa');
         termEl.innerText = capitalize(currentQuestion.term);
         ipaEl.innerText = currentQuestion.ipa ? `[ ${currentQuestion.ipa} ]` : '';
+        renderQuestionMedia(currentQuestion);
 
         if (isDictation) {
             termEl.classList.add('hidden-term'); ipaEl.classList.add('hidden');
@@ -809,11 +875,18 @@
             termEl.classList.remove('hidden-term'); ipaEl.classList.remove('hidden');
         }
 
-        let options = [currentQuestion];
-        while (options.length < 4) {
-            let r = musicTerms[Math.floor(Math.random() * musicTerms.length)];
-            if (!options.some(o => o.term === r.term)) options.push(r);
-        }
+        // --- 👇 請替換成這段新的程式碼 👇 ---
+            let options = [currentQuestion];
+            
+            // 判斷來源：如果目前選定範圍夠大(>=4)，就只從範圍內抓；否則從全體抓
+            let sourceArray = currentPool.length >= 4 ? currentPool : musicTerms;
+        
+            while (options.length < 4) {
+                let r = sourceArray[Math.floor(Math.random() * sourceArray.length)];
+                // 確保不重複
+                if (!options.some(o => o.term === r.term)) options.push(r);
+            }
+            // ----------------------------------------------------
         options.sort(() => Math.random() - 0.5);
 
         const container = document.getElementById('options-container');
@@ -827,58 +900,90 @@
         });
     }
 
-    function checkAnswer(selected, btn) {
-        if (isAnswering) return;
-        isAnswering = true;
-        document.getElementById('question-term').classList.remove('hidden-term');
-        document.getElementById('question-ipa').classList.remove('hidden');
+function checkAnswer(selected, btn) {
+    if (isAnswering) return;
+    isAnswering = true;
+    
+    // 顯示答案與發音標示
+    document.getElementById('question-term').classList.remove('hidden-term');
+    document.getElementById('question-ipa').classList.remove('hidden');
 
-        const isCorrect = selected.term === currentQuestion.term;
-        const feedback = document.getElementById('feedback-area');
-        const title = document.getElementById('feedback-title');
-        const content = document.getElementById('feedback-content');
-        const pBox = document.getElementById('pronunciation-box');
+    const isCorrect = selected.term === currentQuestion.term;
+    const feedback = document.getElementById('feedback-area');
+    const title = document.getElementById('feedback-title');
+    const content = document.getElementById('feedback-content');
+    const pBox = document.getElementById('pronunciation-box');
 
-        document.querySelectorAll('.option-btn').forEach(b => {
-            const txt = currentLang === 'zh' ? currentQuestion.def : currentQuestion.en;
-            if (b.innerText === txt) b.classList.add('correct'); else b.disabled = true;
-        });
+    // 鎖定選項按鈕狀態
+    document.querySelectorAll('.option-btn').forEach(b => {
+        const txt = currentLang === 'zh' ? currentQuestion.def : currentQuestion.en;
+        if (b.innerText === txt) b.classList.add('correct'); 
+        else b.disabled = true;
+    });
 
-        if (isCorrect) {
-            score++; btn.classList.add('correct');
-            feedback.className = 'feedback success'; title.innerHTML = '✅ Correct!'; title.style.color = 'var(--success)';
-            if (isReviewMode) {
-                currentPool = currentPool.filter(q => q.term !== currentQuestion.term);
-                removeFromMistakes(currentQuestion.term);
-            }
-        } else {
-            btn.classList.add('wrong');
-            feedback.className = 'feedback error'; title.innerHTML = '❌ Incorrect'; title.style.color = 'var(--error)';
-            if (!isReviewMode) addToMistakes(currentQuestion);
+    // 判斷對錯與更新分數
+    if (isCorrect) {
+        score++; 
+        btn.classList.add('correct');
+        feedback.className = 'feedback success'; 
+        title.innerHTML = '✅ Correct!'; 
+        title.style.color = 'var(--success)';
+        if (isReviewMode) {
+            currentPool = currentPool.filter(q => q.term !== currentQuestion.term);
+            removeFromMistakes(currentQuestion.term);
         }
-
-        document.getElementById('score-display').innerText = `✅ ${score}`;
-        const pct = Math.min((score / questionCount) * 100, 100);
-        document.getElementById('progress-bar-fill').style.width = `${pct}%`;
-
-        content.innerHTML = `<div><strong>${capitalize(currentQuestion.term)}</strong> (${currentQuestion.lang})</div><div>${currentQuestion.def}</div><div style="font-size:0.9em; color:var(--text-sec)">${currentQuestion.en}</div>`;
-        
-        if (currentQuestion.canto || currentQuestion.mando) {
-            pBox.classList.remove('hidden');
-            pBox.innerHTML = `<div style="display:flex; gap:15px; justify-content:center; margin-top:5px;"><span>🎵 粵: ${currentQuestion.canto || '-'}</span><span>🗣️ 普: ${currentQuestion.mando || '-'}</span></div>`;
-        } else { pBox.classList.add('hidden'); }
-
-        feedback.style.display = 'block';
-        document.getElementById('next-btn').classList.remove('hidden');
-        playAudioSequence(currentQuestion);
-
-        if (document.getElementById('auto-next-toggle').checked) {
-            autoNextTimer = setTimeout(() => {
-                if (currentModeTime > 0 && timeLeft <= 0) return;
-                nextQuestion();
-            }, 3500);
-        }
+    } else {
+        btn.classList.add('wrong');
+        feedback.className = 'feedback error'; 
+        title.innerHTML = '❌ Incorrect'; 
+        title.style.color = 'var(--error)';
+        if (!isReviewMode) addToMistakes(currentQuestion);
     }
+
+    // 更新 UI 分數條
+    document.getElementById('score-display').innerText = `✅ ${score}`;
+    const pct = Math.min((score / questionCount) * 100, 100);
+    document.getElementById('progress-bar-fill').style.width = `${pct}%`;
+
+    // 準備圖片來源顯示
+    let sourceHtml = '';
+    if (currentQuestion.img_source) {
+        sourceHtml = `<div style="font-size:0.75rem; color:#999; margin-top:8px; border-top:1px dashed #eee; padding-top:5px;">${currentQuestion.img_source}</div>`;
+    }
+
+    // 更新反饋區內容
+    content.innerHTML = `<div><strong>${capitalize(currentQuestion.term)}</strong> (${currentQuestion.lang})</div>
+                         <div>${currentQuestion.def}</div>
+                         <div style="font-size:0.9em; color:var(--text-sec)">${currentQuestion.en}</div>
+                         ${sourceHtml}`;
+    
+    // 顯示擬音
+    if (currentQuestion.canto || currentQuestion.mando) {
+        pBox.classList.remove('hidden');
+        pBox.innerHTML = `<div style="display:flex; gap:15px; justify-content:center; margin-top:5px;">
+                            <span>🎵 粵: ${currentQuestion.canto || '-'}</span>
+                            <span>🗣️ 普: ${currentQuestion.mando || '-'}</span>
+                          </div>`;
+    } else { 
+        pBox.classList.add('hidden'); 
+    }
+
+    feedback.style.display = 'block';
+    document.getElementById('next-btn').classList.remove('hidden');
+
+    // --- 關鍵修改：播放聲音並處理自動跳轉 ---
+    const autoNextEnabled = document.getElementById('auto-next-toggle').checked;
+    
+    playAudioSequence(currentQuestion, () => {
+        // 這是 callback 函數，會在「中文意思」讀完後執行
+        if (autoNextEnabled) {
+            // 檢查是否超時 (針對計時模式)
+            if (currentModeTime > 0 && timeLeft <= 0) return;
+            // 跳下一題
+            nextQuestion();
+        }
+    });
+}
 
     // --- 輔助 ---
     function startTimer() { updateTimerUI(); timerInterval = setInterval(() => { timeLeft--; updateTimerUI(); if (timeLeft <= 0) endGame(true); }, 1000); }
@@ -892,20 +997,109 @@
         const key = currentModeTime.toString();
         if (score > (stats[key] || 0)) { stats[key] = score; localStorage.setItem('musicQuiz_stats_v6', JSON.stringify(stats)); }
         document.getElementById('final-score').innerText = score;
+        const pct = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+        document.getElementById('final-progress').innerText = `${score} / ${totalQuestions} (${pct}%)`;
         showScreen('screen-result');
     }
 
-    function playCurrentTerm() { if (!currentQuestion) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(currentQuestion.term); u.lang = langMap[currentQuestion.lang] || 'en-US'; window.speechSynthesis.speak(u); }
+// 接收 rate 參數 (預設為 1，慢速按鈕會傳入 0.5)
+function playCurrentTerm(rate = 1) {
+    if (!currentQuestion) return;
     
-    function playAudioSequence(q) {
-        window.speechSynthesis.cancel();
-        const u1 = new SpeechSynthesisUtterance(q.term); u1.lang = langMap[q.lang] || 'en-US';
-        const u2 = new SpeechSynthesisUtterance("Means, " + q.en); u2.lang = 'en-US';
-        u1.onend = () => { setTimeout(() => window.speechSynthesis.speak(u2), 400); };
-        window.speechSynthesis.speak(u1);
+    // 停止當前任何發音
+    window.speechSynthesis.cancel();
+    
+    const u = new SpeechSynthesisUtterance(currentQuestion.term);
+    const targetLang = langMap[currentQuestion.lang] || 'en-US';
+    
+    // --- 1. 發音修正邏輯 (避免電腦用國語硬讀) ---
+    const voices = window.speechSynthesis.getVoices();
+    
+    // 嘗試尋找對應語言 (例如義大利文)
+    const exactVoice = voices.find(v => v.lang.includes(targetLang));
+    
+    if (exactVoice) {
+        // iPhone/Mac 通常會進到這裡 (使用正確語言包)
+        u.voice = exactVoice;
+        u.lang = targetLang;
+    } else {
+        // PC/Android 若沒裝語言包，強制轉用英文發音 (避免國語怪腔)
+        u.lang = 'en-US'; 
+        const enVoice = voices.find(v => v.lang.includes('en-US'));
+        if (enVoice) u.voice = enVoice;
     }
 
-    // --- 錯題本 & 分享功能 (V8.1 補回) ---
+    // --- 2. 語速控制邏輯 (慢速重播的關鍵) ---
+    // 將按鈕傳進來的數值 (0.5 或 1) 設定給發音物件
+    u.rate = rate; 
+
+    window.speechSynthesis.speak(u);
+}    
+// --- 完整更新版：支援發音修正 + 廣東話優先 + 自動跳下一題 ---
+function playAudioSequence(q, onCompleteCallback) {
+    // 停止當前任何發音
+    window.speechSynthesis.cancel();
+
+    // 取得所有可用聲音 (共用)
+    const voices = window.speechSynthesis.getVoices();
+
+    // --- 1. 準備第一句：原文 (Term) ---
+    const u1 = new SpeechSynthesisUtterance(q.term);
+    const targetLang = langMap[q.lang] || 'en-US';
+    
+    // 修正原文發音 (避免國語硬讀義大利文)
+    const exactVoice = voices.find(v => v.lang.includes(targetLang));
+    if (exactVoice) {
+        u1.voice = exactVoice;
+        u1.lang = targetLang;
+    } else {
+        u1.lang = 'en-US'; // 沒語音包時，轉英文發音
+        const enVoice = voices.find(v => v.lang.includes('en-US'));
+        if (enVoice) u1.voice = enVoice;
+    }
+    u1.rate = 0.9;
+
+    // --- 2. 準備第二句：英文意思 ---
+    const u2 = new SpeechSynthesisUtterance("Means, " + q.en);
+    u2.lang = 'en-US';
+    u2.rate = 1.1;
+
+    // --- 3. 準備第三句：中文意思 (廣東話優先邏輯) ⭐️ ---
+    const u3 = new SpeechSynthesisUtterance("意思是, " + q.def);
+    
+    // 尋找廣東話與國語聲音
+    const cantoVoice = voices.find(v => v.lang.includes('zh-HK')); // 香港粵語
+    const mandoVoice = voices.find(v => v.lang.includes('zh-TW')); // 台灣國語
+
+    if (cantoVoice) {
+        // 優先：有廣東話就用廣東話
+        u3.voice = cantoVoice;
+        u3.lang = 'zh-HK';
+    } else if (mandoVoice) {
+        // 次選：沒有廣東話，用台灣國語
+        u3.voice = mandoVoice;
+        u3.lang = 'zh-TW';
+    } else {
+        // 保底：都沒有，設定語言標籤讓系統自己猜
+        u3.lang = 'zh-TW';
+    }
+    u3.rate = 1.0; // 廣東話語速通常比國語快，建議稍微調回 1.0 或 0.9
+
+    // --- 設定串接邏輯 (Chain) ---
+    u1.onend = () => { setTimeout(() => window.speechSynthesis.speak(u2), 200); };
+    u2.onend = () => { setTimeout(() => window.speechSynthesis.speak(u3), 200); };
+    
+    // 中文讀完後執行回調 (跳下一題)
+    u3.onend = () => {
+        if (onCompleteCallback) {
+            setTimeout(onCompleteCallback, 500);
+        }
+    };
+
+    // --- 開始播放 ---
+    window.speechSynthesis.speak(u1);
+}
+    // --- 錯題本 & 分享功能 ---
     function addToMistakes(q) { if (!wrongAnswers.some(i => i.term === q.term)) { wrongAnswers.push(q); localStorage.setItem('musicQuiz_mistakes_v6', JSON.stringify(wrongAnswers)); updateMistakeBadge(); } }
     function removeFromMistakes(term) { wrongAnswers = wrongAnswers.filter(i => i.term !== term); localStorage.setItem('musicQuiz_mistakes_v6', JSON.stringify(wrongAnswers)); updateMistakeBadge(); }
     function updateMistakeBadge() { const el = document.getElementById('mistake-count'); el.innerText = wrongAnswers.length; el.style.display = wrongAnswers.length > 0 ? 'block' : 'none'; }
@@ -916,9 +1110,9 @@
         
         if (wrongAnswers.length === 0) {
             list.innerHTML = '<p style="color:var(--text-sec); text-align:center;">No mistakes.</p>';
-            actions.style.display = 'none'; // 隱藏按鈕
+            actions.style.display = 'none'; 
         } else {
-            actions.style.display = 'flex'; // 顯示按鈕
+            actions.style.display = 'flex'; 
             wrongAnswers.forEach(item => { 
                 const div = document.createElement('div'); 
                 div.style.padding = '8px 0'; div.style.borderBottom = '1px solid var(--border)'; 
@@ -930,7 +1124,6 @@
     }
     function closeMistakesModal() { document.getElementById('mistake-modal').style.display = 'none'; }
 
-    // --- 分享與複製功能 (V8.1) ---
     function generateShareText() {
         let text = "🎵 Music Terms Mistakes:\n\n";
         wrongAnswers.forEach(i => text += `${i.term}: ${i.def} (${i.en})\n`);
@@ -952,15 +1145,87 @@
     }
 
     // --- 匯入功能 ---
-    function openImportModal() { document.getElementById('import-modal').style.display = 'flex'; }
+    function openImportModal() { document.getElementById('import-modal').style.display = 'flex'; switchDataTab('text'); }
     function closeImportModal() { document.getElementById('import-modal').style.display = 'none'; }
     function importFromFile() { const file = document.getElementById('import-file').files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { validateAndLoad(JSON.parse(e.target.result)); } catch(err) { alert("Error: " + err.message); } }; reader.readAsText(file); }
     async function importFromUrl() { const url = document.getElementById('import-url').value.trim(); if(!url) return; try { const res = await fetch(url); if(!res.ok) throw new Error("Net Error"); validateAndLoad(await res.json()); } catch(err) { alert("Failed: " + err.message); } }
     function processTextImport() { try { validateAndLoad(JSON.parse(document.getElementById('import-text').value)); } catch (e) { alert("Error: " + e.message); } }
-    function validateAndLoad(d) { if (!Array.isArray(d) || !d[0].term) return alert("Invalid JSON"); musicTerms = d; alert(`Loaded ${d.length} terms.`); renderCategoryFilters(); closeImportModal(); }
-    function resetData() { musicTerms = JSON.parse(JSON.stringify(defaultData)); renderCategoryFilters(); alert("Reset Done."); closeImportModal(); }
+    function validateAndLoad(d) { if (!Array.isArray(d) || !d[0].term) return alert("Invalid JSON"); musicTerms = normalizeTermData(d); alert(`Loaded ${d.length} terms.`); renderCategoryFilters(); closeImportModal(); }
+    function resetData() { musicTerms = normalizeTermData(defaultData); renderCategoryFilters(); alert("Reset Done."); closeImportModal(); }
     
     function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    // --- 資料歸類邏輯 ---
+    function normalizeCategory(cat) {
+        if (!cat) return "E"; // 預設歸類到修飾詞
+
+        const c = cat.toLowerCase();
+        
+        // 優先匹配 A-J 明確標籤
+        if (cat.startsWith("A.")) return "A";
+        if (cat.startsWith("B.")) return "B";
+        if (cat.startsWith("C.")) return "C";
+        if (cat.startsWith("D.")) return "D";
+        if (cat.startsWith("E.")) return "E";
+        if (cat.startsWith("F.")) return "F";
+        if (cat.startsWith("G.")) return "G";
+        if (cat.startsWith("H.")) return "H";
+        if (cat.startsWith("I.")) return "I";
+        if (cat.startsWith("J.")) return "J";
+
+        // 模糊匹配舊標籤
+        if (c.includes("tempo")) return "A";
+        if (c.includes("dynamics")) return "B";
+        if (c.includes("expression")) return "C";
+        if (c.includes("structure") || c.includes("technique")) return "D";
+        if (c.includes("modifiers") || c.includes("keywords") || c.includes("general")) return "E";
+        if (c.includes("instruments") && !c.includes("family")) return "F"; // 避免與家族混淆
+        if (c.includes("voices")) return "G";
+        if (c.includes("clefs")) return "H";
+        if (c.includes("families")) return "I";
+        if (c.includes("other")) return "J";
+
+        return "E"; // Fallback
+    }
+
+    function normalizeTermData(list) {
+        return list.map(item => ({ ...item, category: normalizeCategory(item.cat) }));
+    }
+
+    function switchDataTab(tabKey) {
+        document.querySelectorAll('.data-tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.data-panel').forEach(panel => panel.classList.remove('active'));
+        document.querySelector(`.data-tab[data-tab="${tabKey}"]`)?.classList.add('active');
+        document.getElementById(`data-panel-${tabKey}`).classList.add('active');
+    }
+
+    function renderQuestionMedia(item) {
+        const media = document.getElementById('question-media');
+        const imageEl = document.getElementById('question-image');
+        const xmlEl = document.getElementById('question-musicxml');
+        const imageUrl = item.image || item.img || item.imageUrl || '';
+        const musicXml = item.musicxml || '';
+
+        imageEl.style.display = 'none';
+        xmlEl.innerHTML = '';
+        xmlEl.style.display = 'none';
+        media.classList.remove('active');
+
+        if (imageUrl) {
+            imageEl.src = imageUrl;
+            imageEl.style.display = 'block';
+            media.classList.add('active');
+        }
+
+        if (musicXml && window.opensheetmusicdisplay) {
+            xmlEl.style.display = 'block';
+            media.classList.add('active');
+            const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(xmlEl, { autoResize: true, drawTitle: false });
+            osmd.load(musicXml).then(() => osmd.render()).catch(() => {
+                xmlEl.innerText = "MusicXML render failed.";
+            });
+        }
+    }
 
 </script>
 </body>
